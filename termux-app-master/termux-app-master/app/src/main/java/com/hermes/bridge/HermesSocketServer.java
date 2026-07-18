@@ -75,20 +75,38 @@ public class HermesSocketServer {
     private void listenLoop() {
         // Use localhost TCP for maximum compatibility. Termux Python can connect to
         // 127.0.0.1 without dealing with Android abstract Unix socket namespaces.
-        try {
-            mServerSocket = new ServerSocket(18081);
-            mSocketPath = "tcp:127.0.0.1:18081";
-            Log.i(LOG_TAG, "Listening on TCP: " + mSocketPath);
-            while (mRunning.get()) {
-                Socket client = mServerSocket.accept();
-                mExecutor.execute(() -> handleClient(client));
+        // 外层循环：accept 循环异常退出时自动重启，避免监听假死（fd 泄漏但无人 accept）。
+        while (mRunning.get()) {
+            try {
+                mServerSocket = new ServerSocket(18081);
+                mSocketPath = "tcp:127.0.0.1:18081";
+                Log.i(LOG_TAG, "Listening on TCP: " + mSocketPath);
+                while (mRunning.get()) {
+                    Socket client = mServerSocket.accept();
+                    mExecutor.execute(() -> handleClient(client));
+                }
+            } catch (IOException e) {
+                if (mRunning.get()) {
+                    Log.e(LOG_TAG, "TCP server failed, restarting listener in 2s", e);
+                }
+            } finally {
+                ServerSocket socket = mServerSocket;
+                mServerSocket = null;
+                if (socket != null) {
+                    try {
+                        socket.close();
+                    } catch (IOException ignored) {
+                    }
+                }
             }
-        } catch (IOException e) {
             if (mRunning.get()) {
-                Log.e(LOG_TAG, "TCP server failed", e);
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
-        } finally {
-            mServerSocket = null;
         }
     }
 

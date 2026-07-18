@@ -29,10 +29,14 @@ import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.shell.TermuxShellManager;
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Foreground service that bootstraps the Hermes environment in Termux and keeps SSH running.
@@ -46,6 +50,8 @@ public class HermesService extends Service {
     private static final int NOTIFICATION_ID = 1338;
     private static final String CHANNEL_ID = "hermes_service_channel";
     private static final String CHANNEL_NAME = "Hermes Agent";
+    /** 完整版 agent 源码+依赖的版本标记；变更会触发设备端重新释放/安装。 */
+    private static final String FULL_AGENT_VERSION = "2.0.0";
 
     private final IBinder mBinder = new LocalBinder();
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -157,15 +163,24 @@ public class HermesService extends Service {
             mSocketServer = new HermesSocketServer(this);
             mSocketServer.start();
 
-            // Install the minimum Termux packages needed for the agent and SSH.
+            // Install the Termux packages needed for the agents and SSH.
+            // python3.13/rust/clang 等是完整版 agent 的依赖（轻量 agent 只用 python）。
             if (!runShell("Update packages and install dependencies",
-                "pkg update && pkg install -y python openssh")) {
+                "pkg update && pkg install -y python openssh python3.13 unzip ripgrep "
+                    + "rust clang make cmake pkg-config libffi openssl "
+                    + "libjpeg-turbo zlib libpng libtiff libwebp openjpeg littlecms "
+                    + "freetype libimagequant libxcb")) {
                 Log.w(LOG_TAG, "Package install step failed; continuing anyway");
             }
 
-            // Deploy the lightweight Chinese Hermes agent.
+            // Deploy the lightweight Chinese Hermes agent (fallback mode).
             copyAssetToFile("hermes_agent.py",
                 TermuxConstants.TERMUX_HOME_DIR_PATH + "/.hermes/agent.py");
+            // Deploy the full-agent HTTP adapter and its source bundle.
+            copyAssetToFile("android_server.py",
+                TermuxConstants.TERMUX_HOME_DIR_PATH + "/.hermes/android_server.py");
+            deployFullAgentSource();
+            installFullAgentDeps();
 
             setStatus(getString(R.string.hermes_setup_sshd));
             mSshManager = new SshManager(this);
@@ -188,16 +203,25 @@ public class HermesService extends Service {
     private void startLightAgent() {
         String socketPath = mSocketServer != null ? mSocketServer.getSocketPath() : "";
         String homeDir = TermuxConstants.TERMUX_HOME_DIR_PATH;
-        String agentPath = homeDir + "/.hermes/agent.py";
+
+        // 完整版依赖就绪则用完整 agent，否则回退轻量 agent。
+        boolean fullReady = FULL_AGENT_VERSION.equals(
+                readMarker(homeDir + "/.hermes/.pip_install_version"))
+            && new File(homeDir + "/.hermes/android_server.py").exists();
+        String agentPath = fullReady
+            ? homeDir + "/.hermes/android_server.py"
+            : homeDir + "/.hermes/agent.py";
+        String python = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH
+            + (fullReady ? "/python3.13" : "/python");
         if (!new File(agentPath).exists()) {
             Log.w(LOG_TAG, "Agent script not found, skipping agent start");
             return;
         }
+        Log.i(LOG_TAG, "Starting agent in " + (fullReady ? "FULL" : "LIGHT") + " mode");
 
         // Start the agent directly with ProcessBuilder so that it is not tied to
         // an AppShell lifecycle that would destroy the process group on exit.
         String logPath = homeDir + "/.hermes/service_agent.log";
-        String python = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + "/python";
         String bashCommand = "exec " + python + " -u " + agentPath + " > " + logPath + " 2>&1";
 
         ProcessBuilder pb = new ProcessBuilder(
@@ -206,6 +230,8 @@ public class HermesService extends Service {
         java.util.Map<String, String> env = pb.environment();
         env.put("HERMES_ANDROID_BRIDGE_SOCKET", socketPath);
         env.put("HERMES_PLUGINS_DEBUG", "1");
+        env.put("HOME", homeDir);
+        env.put("TMPDIR", TermuxConstants.TERMUX_FILES_DIR_PATH + "/usr/tmp");
         env.put("PATH", TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + ":" + env.get("PATH"));
 
         try {
@@ -229,6 +255,62 @@ public class HermesService extends Service {
 
     private boolean isBootstrapInstalled() {
         return new File(TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + "/bash").exists();
+    }
+
+    /** 释放完整版 agent 源码（zip 打包在 assets，版本不变则跳过）。 */
+    private void deployFullAgentSource() {
+        String hermesDir = TermuxConstants.TERMUX_HOME_DIR_PATH + "/.hermes";
+        if (FULL_AGENT_VERSION.equals(readMarker(hermesDir + "/.agent_src_version"))
+            && new File(hermesDir, "hermes-agent/run_agent.py").exists()) {
+            return;
+        }
+        setStatus("正在释放完整智能体源码…");
+        copyAssetToFile("hermes_agent_full.zip", hermesDir + "/hermes_agent_full.zip");
+        if (runShell("Extract full agent source",
+            "cd " + hermesDir
+                + " && rm -rf hermes-agent"
+                + " && unzip -q hermes_agent_full.zip"
+                + " && rm hermes_agent_full.zip"
+                + " && echo " + FULL_AGENT_VERSION + " > .agent_src_version")) {
+            Log.i(LOG_TAG, "Full agent source deployed");
+        } else {
+            Log.w(LOG_TAG, "Full agent source deploy failed; light agent remains available");
+        }
+    }
+
+    /** 首启安装完整版 agent 的 Python 依赖（耗时较长，仅版本变化时执行）。 */
+    private void installFullAgentDeps() {
+        String hermesDir = TermuxConstants.TERMUX_HOME_DIR_PATH + "/.hermes";
+        if (!new File(hermesDir, "hermes-agent/pyproject.toml").exists()) return;
+        if (FULL_AGENT_VERSION.equals(readMarker(hermesDir + "/.pip_install_version"))) return;
+        setStatus("首次安装智能体依赖（约 10-30 分钟，请保持网络畅通）…");
+        String prefix = TermuxConstants.TERMUX_FILES_DIR_PATH + "/usr";
+        // psutil 官方拒绝 Android 平台，先跑上游自带的兼容 shim（给 sdist 打补丁后编译）
+        boolean ok = runShell("Install full agent dependencies",
+            "export TMPDIR=" + prefix + "/tmp"
+                + " && cd " + hermesDir + "/hermes-agent"
+                + " && " + prefix + "/bin/python3.13 -m pip install -q setuptools wheel"
+                + " -i https://pypi.tuna.tsinghua.edu.cn/simple"
+                + " && " + prefix + "/bin/python3.13 scripts/install_psutil_android.py"
+                + " && " + prefix + "/bin/python3.13 -m pip install -e '.[termux]'"
+                + " -c constraints-termux.txt"
+                + " -i https://pypi.tuna.tsinghua.edu.cn/simple"
+                + " && echo " + FULL_AGENT_VERSION + " > " + hermesDir + "/.pip_install_version");
+        if (ok) {
+            Log.i(LOG_TAG, "Full agent dependencies installed");
+        } else {
+            Log.w(LOG_TAG, "Full agent dependency install failed; light agent remains available");
+        }
+    }
+
+    private String readMarker(String path) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                new FileInputStream(path), StandardCharsets.UTF_8))) {
+            String line = reader.readLine();
+            return line == null ? "" : line.trim();
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     private void ensureHermesConfig() {

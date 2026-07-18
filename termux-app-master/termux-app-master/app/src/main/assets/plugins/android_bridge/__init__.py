@@ -1,10 +1,11 @@
 """Hermes plugin that exposes Android capabilities via the Android bridge socket."""
 
+import json
 import logging
 from typing import Any, Dict
 
 from hermes_cli.plugins import PluginContext
-from tools import registry
+from tools.registry import registry
 from toolsets import TOOLSETS
 
 from .client import get_bridge_client
@@ -34,64 +35,106 @@ def _check_bridge_available() -> bool:
         return False
 
 
+def _bridge_call(method: str, params: Dict[str, Any] = None) -> str:
+    """调用桥并把结果序列化为 JSON 字符串（hermes 工具契约要求 str 返回）。"""
+    result = get_bridge_client().call(method, params)
+    return json.dumps(result, ensure_ascii=False)
+
+
 def _clipboard_read(**_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("clipboard_read")
+    return _bridge_call("clipboard_read")
 
 
 def _clipboard_write(text: str, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("clipboard_write", {"text": text})
+    return _bridge_call("clipboard_write", {"text": text})
 
 
 def _notification_show(title: str, message: str, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("notification_show", {"title": title, "message": message})
+    return _bridge_call("notification", {"title": title, "message": message})
 
 
 def _device_info(**_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("device_info")
+    return _bridge_call("device_info")
 
 
 def _vibrate(duration: int = 200, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("vibrate", {"duration": duration})
+    return _bridge_call("vibrate", {"duration": duration})
 
 
 def _torch(on: bool = True, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("torch", {"on": on})
+    return _bridge_call("torch", {"on": on})
 
 
 def _battery_status(**_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("battery_status")
+    return _bridge_call("battery")
 
 
 def _shell(command: str, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("shell", {"command": command})
+    return _bridge_call("shell", {"command": command})
 
 
 def _root_shell(command: str, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("root_shell", {"command": command})
+    return _bridge_call("root_shell", {"command": command})
 
 
 def _accessibility_dump(**_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("accessibility_dump")
+    return _bridge_call("accessibility_dump")
 
 
 def _accessibility_click(text: str, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("accessibility_click", {"text": text})
+    return _bridge_call("accessibility_click", {"text": text})
 
 
 def _accessibility_input(text: str, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("accessibility_input", {"text": text})
+    return _bridge_call("accessibility_input", {"text": text})
 
 
 def _device_admin_lock(**_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("device_admin_lock")
-
-
-def _device_admin_wipe(external: bool = False, **_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("device_admin_wipe", {"external": external})
+    return _bridge_call("device_admin_lock")
 
 
 def _location_get(**_kwargs: Any) -> Dict[str, Any]:
-    return get_bridge_client().call("location_get")
+    return _bridge_call("location_get")
+
+
+def _sms_list(limit: int = 20, **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("sms_list", {"limit": limit})
+
+
+def _sms_send(to: str, body: str, **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("sms_send", {"to": to, "body": body})
+
+
+def _contacts_list(**_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("contacts_list")
+
+
+def _app_list(**_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("app_list")
+
+
+def _app_open(package: str, **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("app_open", {"package": package})
+
+
+def _volume_get(**_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("volume_get")
+
+
+def _volume_set(volume: int, stream: int = 3, **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("volume_set", {"stream": stream, "volume": volume})
+
+
+def _brightness_get(**_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("brightness_get")
+
+
+def _brightness_set(brightness: int, **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("brightness_set", {"brightness": brightness})
+
+
+def _open_url(url: str, **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("open_url", {"url": url})
 
 
 def register(ctx: PluginContext) -> None:
@@ -291,21 +334,6 @@ def register(ctx: PluginContext) -> None:
     )
 
     registry.register(
-        name="android_device_admin_wipe",
-        toolset=TOOLSET_NAME,
-        schema={
-            "type": "object",
-            "properties": {
-                "external": {"type": "boolean", "description": "Also wipe external storage.", "default": False},
-            },
-        },
-        handler=lambda args, **_kw: _device_admin_wipe(**args),
-        check_fn=_check_bridge_available,
-        description="Factory reset the device (requires device admin enabled). Use with extreme caution.",
-        emoji="💣",
-    )
-
-    registry.register(
         name="android_location_get",
         toolset=TOOLSET_NAME,
         schema={
@@ -316,6 +344,155 @@ def register(ctx: PluginContext) -> None:
         check_fn=_check_bridge_available,
         description="Get last known device location (requires location permission).",
         emoji="📍",
+    )
+
+    registry.register(
+        name="android_sms_list",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Max number of recent SMS messages to return.", "default": 20},
+            },
+        },
+        handler=lambda args, **_kw: _sms_list(**args),
+        check_fn=_check_bridge_available,
+        description="List recent SMS messages (requires SMS permission).",
+        emoji="✉️",
+    )
+
+    registry.register(
+        name="android_sms_send",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "to": {"type": "string", "description": "Recipient phone number."},
+                "body": {"type": "string", "description": "SMS text body."},
+            },
+            "required": ["to", "body"],
+        },
+        handler=lambda args, **_kw: _sms_send(**args),
+        check_fn=_check_bridge_available,
+        description="Send an SMS message (requires SMS permission). Confirm with the user before sending.",
+        emoji="📤",
+    )
+
+    registry.register(
+        name="android_contacts_list",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {},
+        },
+        handler=lambda args, **_kw: _contacts_list(**args),
+        check_fn=_check_bridge_available,
+        description="List device contacts (requires contacts permission).",
+        emoji="👥",
+    )
+
+    registry.register(
+        name="android_app_list",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {},
+        },
+        handler=lambda args, **_kw: _app_list(**args),
+        check_fn=_check_bridge_available,
+        description="List installed Android apps with package names.",
+        emoji="📦",
+    )
+
+    registry.register(
+        name="android_app_open",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "package": {"type": "string", "description": "Package name of the app to open, e.g. com.android.settings."},
+            },
+            "required": ["package"],
+        },
+        handler=lambda args, **_kw: _app_open(**args),
+        check_fn=_check_bridge_available,
+        description="Open (launch) an Android app by package name.",
+        emoji="🚀",
+    )
+
+    registry.register(
+        name="android_volume_get",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {},
+        },
+        handler=lambda args, **_kw: _volume_get(**args),
+        check_fn=_check_bridge_available,
+        description="Get current Android volume levels.",
+        emoji="🔊",
+    )
+
+    registry.register(
+        name="android_volume_set",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "volume": {"type": "integer", "description": "Target volume index."},
+                "stream": {"type": "integer", "description": "Audio stream: 3=music, 2=ring, 4=alarm, 1=system, 0=voice call.", "default": 3},
+            },
+            "required": ["volume"],
+        },
+        handler=lambda args, **_kw: _volume_set(**args),
+        check_fn=_check_bridge_available,
+        description="Set Android volume for an audio stream.",
+        emoji="🔉",
+    )
+
+    registry.register(
+        name="android_brightness_get",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {},
+        },
+        handler=lambda args, **_kw: _brightness_get(**args),
+        check_fn=_check_bridge_available,
+        description="Get current screen brightness (0-255) and mode.",
+        emoji="☀️",
+    )
+
+    registry.register(
+        name="android_brightness_set",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "brightness": {"type": "integer", "description": "Brightness value 0-255."},
+            },
+            "required": ["brightness"],
+        },
+        handler=lambda args, **_kw: _brightness_set(**args),
+        check_fn=_check_bridge_available,
+        description="Set screen brightness (0-255, requires write-settings permission).",
+        emoji="🔆",
+    )
+
+    registry.register(
+        name="android_open_url",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "URL to open in the browser."},
+            },
+            "required": ["url"],
+        },
+        handler=lambda args, **_kw: _open_url(**args),
+        check_fn=_check_bridge_available,
+        description="Open a URL in the device browser.",
+        emoji="🌐",
     )
 
     logger.info("Android bridge plugin registered")
