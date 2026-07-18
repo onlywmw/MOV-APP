@@ -37,3 +37,6 @@ local.properties
 .swp
 ehthumbs.db
 Thumbs.db
+
+# hermes-agent 完整源码包是源代码资产，不是构建产物
+!app/src/main/assets/hermes_agent_full.zip
