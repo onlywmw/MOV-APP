@@ -141,6 +141,14 @@ def _alarm_set(hour: int, minutes: int = 0, message: str = "Hermes 提醒", **_k
     return _bridge_call("alarm_set", {"hour": hour, "minutes": minutes, "message": message})
 
 
+def _calendar_add(title: str, start_ms: int, end_ms: int = 0, description: str = "",
+                  location: str = "", **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("calendar_add", {
+        "title": title, "start_ms": start_ms, "end_ms": end_ms,
+        "description": description, "location": location,
+    })
+
+
 def register(ctx: PluginContext) -> None:
     """Plugin entry point called by Hermes during plugin discovery."""
     _register_toolset()
@@ -513,8 +521,28 @@ def register(ctx: PluginContext) -> None:
         },
         handler=lambda args, **_kw: _alarm_set(**args),
         check_fn=_check_bridge_available,
-        description="Set an alarm in the system Clock app (opens prefilled editor for one-tap user confirm). Prefer this over cronjob when the user says 定闹钟/闹钟.",
+        description="Set an alarm (Hermes self-managed: exact AlarmManager wakeup + fullscreen notification, label always correct; NOT the system Clock app). Prefer this over cronjob when the user says 定闹钟/闹钟.",
         emoji="⏰",
+    )
+
+    registry.register(
+        name="android_calendar_add",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "Event title."},
+                "start_ms": {"type": "integer", "description": "Event start time, Unix epoch milliseconds."},
+                "end_ms": {"type": "integer", "description": "Event end time, Unix epoch milliseconds. Defaults to start+1h.", "default": 0},
+                "description": {"type": "string", "description": "Event description/notes.", "default": ""},
+                "location": {"type": "string", "description": "Event location.", "default": ""},
+            },
+            "required": ["title", "start_ms"],
+        },
+        handler=lambda args, **_kw: _calendar_add(**args),
+        check_fn=_check_bridge_available,
+        description="Add an event to the device calendar (syncs via the calendar account). Use when the user asks to 同步日历/加到日历/日程.",
+        emoji="📅",
     )
 
     logger.info("Android bridge plugin registered")

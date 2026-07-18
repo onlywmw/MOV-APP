@@ -7,6 +7,8 @@ import android.content.ClipData;
 import android.app.admin.DevicePolicyManager;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -17,25 +19,32 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.Manifest;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.VibrationEffect;
-import android.provider.AlarmClock;
+import android.provider.CalendarContract;
+import android.provider.Settings;
 import android.os.Vibrator;
 import android.provider.ContactsContract;
-import android.provider.Settings;
 import android.telephony.SmsManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
+import com.hermes.receiver.AlarmReceiver;
 import com.hermes.service.HermesAccessibilityService;
 import com.hermes.service.HermesDeviceAdminReceiver;
 import com.termux.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * Dispatches JSON-RPC method calls from Hermes into Android system APIs.
@@ -110,6 +119,8 @@ public class AndroidToolBridge {
                 return handleOpenUrl(params);
             case "alarm_set":
                 return handleAlarmSet(params);
+            case "calendar_add":
+                return handleCalendarAdd(params);
             default:
                 return new JSONObject().put("error", "Unknown method: " + method);
         }
@@ -560,18 +571,106 @@ public class AndroidToolBridge {
             return new JSONObject().put("success", false)
                 .put("error", "Invalid time: hour=" + hour + ", minutes=" + minutes);
         }
-        // MIUI 等 ROM 会静默忽略 SKIP_UI=true 的直接写入（不报错也不生效），
-        // 因此统一打开时钟 App 的预填界面，用户点一下确认即可——最可靠的通用路径。
-        Intent intent = new Intent(AlarmClock.ACTION_SET_ALARM)
-            .putExtra(AlarmClock.EXTRA_HOUR, hour)
-            .putExtra(AlarmClock.EXTRA_MINUTES, minutes)
-            .putExtra(AlarmClock.EXTRA_MESSAGE, message)
-            .putExtra(AlarmClock.EXTRA_SKIP_UI, false)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        mContext.startActivity(intent);
+        // MIUI 会清洗第三方 SET_ALARM intent 的 extras（时间/标签不可靠），
+        // 改为 Hermes 自管闹钟：AlarmManager 精确唤醒 + 全屏通知，标签 100% 可靠。
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, hour);
+        cal.set(Calendar.MINUTE, minutes);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
+            cal.add(Calendar.DAY_OF_YEAR, 1);  // 今天已过点则排到明天
+        }
+        int id = (int) (cal.getTimeInMillis() / 60000);
+        String error = AlarmReceiver.schedule(mContext, id, cal.getTimeInMillis(), message);
+        if (error != null) {
+            if ("need_exact_alarm_permission".equals(error)) {
+                try {
+                    mContext.startActivity(
+                        new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (Exception e) {
+                    Log.w(LOG_TAG, "Failed to open exact-alarm settings", e);
+                }
+                return new JSONObject().put("success", false)
+                    .put("error", "需要「闹钟和提醒」权限，已打开设置页，请授予后重试");
+            }
+            return new JSONObject().put("success", false).put("error", error);
+        }
+        String when = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+            .format(cal.getTime());
         return new JSONObject().put("success", true)
-            .put("mode", "clock_ui")
-            .put("hour", hour).put("minutes", minutes)
-            .put("note", "已在时钟 App 打开预填好的闹钟，需用户点一下确认/保存");
+            .put("trigger_at", when)
+            .put("message", message)
+            .put("note", "Hermes 自管闹钟（非系统时钟 App），到点全屏响铃通知");
+    }
+
+    private JSONObject handleCalendarAdd(@NonNull JSONObject params) throws JSONException {
+        String title = params.optString("title", "");
+        long startMs = params.optLong("start_ms", 0);
+        long endMs = params.optLong("end_ms", 0);
+        String description = params.optString("description", "");
+        String location = params.optString("location", "");
+        if (title.isEmpty() || startMs <= 0) {
+            return new JSONObject().put("success", false)
+                .put("error", "Missing 'title' or 'start_ms'");
+        }
+        if (endMs <= startMs) endMs = startMs + 3600_000L;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            && mContext.checkSelfPermission(Manifest.permission.WRITE_CALENDAR)
+                != PackageManager.PERMISSION_GRANTED) {
+            return new JSONObject().put("success", false)
+                .put("error", "need_calendar_permission")
+                .put("note", "请在 Hermes App 中授予日历权限后重试");
+        }
+        long calendarId = findWritableCalendarId();
+        if (calendarId < 0) {
+            return new JSONObject().put("success", false)
+                .put("error", "no_calendar_account")
+                .put("note", "设备上没有可写入的日历账户，请先在日历 App 中添加账户");
+        }
+        ContentValues values = new ContentValues();
+        values.put(CalendarContract.Events.CALENDAR_ID, calendarId);
+        values.put(CalendarContract.Events.TITLE, title);
+        values.put(CalendarContract.Events.DTSTART, startMs);
+        values.put(CalendarContract.Events.DTEND, endMs);
+        values.put(CalendarContract.Events.DESCRIPTION, description);
+        if (!location.isEmpty()) {
+            values.put(CalendarContract.Events.EVENT_LOCATION, location);
+        }
+        values.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().getID());
+        try {
+            Uri uri = mContext.getContentResolver()
+                .insert(CalendarContract.Events.CONTENT_URI, values);
+            if (uri == null) {
+                return new JSONObject().put("success", false).put("error", "insert failed");
+            }
+            return new JSONObject().put("success", true)
+                .put("event_id", ContentUris.parseId(uri))
+                .put("title", title);
+        } catch (Exception e) {
+            return new JSONObject().put("success", false)
+                .put("error", "calendar insert failed: " + e.getMessage());
+        }
+    }
+
+    private long findWritableCalendarId() {
+        Cursor cursor = null;
+        try {
+            cursor = mContext.getContentResolver().query(
+                CalendarContract.Calendars.CONTENT_URI,
+                new String[]{CalendarContract.Calendars._ID},
+                CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL + ">=?",
+                new String[]{String.valueOf(CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR)},
+                CalendarContract.Calendars.VISIBLE + " DESC");
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getLong(0);
+            }
+        } catch (Exception e) {
+            Log.w(LOG_TAG, "Query calendars failed", e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return -1;
     }
 }

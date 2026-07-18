@@ -349,7 +349,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "alarm_set",
-            "description": "在系统时钟里定一个真正的闹钟（hour 0-23, minutes 0-59, message 闹钟标签）",
+            "description": "定一个 Hermes 自管闹钟（精确唤醒+全屏响铃通知，标签可靠）。hour 0-23, minutes 0-59, message 闹钟标签",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -358,6 +358,24 @@ TOOLS = [
                     "message": {"type": "string"},
                 },
                 "required": ["hour"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calendar_add",
+            "description": "向日历添加日程。title 标题, start_ms 开始毫秒时间戳, end_ms 结束毫秒时间戳(可选), description 备注(可选), location 地点(可选)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "start_ms": {"type": "integer"},
+                    "end_ms": {"type": "integer"},
+                    "description": {"type": "string"},
+                    "location": {"type": "string"},
+                },
+                "required": ["title", "start_ms"],
             },
         },
     },

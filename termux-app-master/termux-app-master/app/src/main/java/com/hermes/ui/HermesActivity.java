@@ -74,6 +74,8 @@ public class HermesActivity extends AppCompatActivity implements ServiceConnecti
         Manifest.permission.READ_PHONE_STATE,
         Manifest.permission.READ_EXTERNAL_STORAGE,
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.READ_CALENDAR,
+        Manifest.permission.WRITE_CALENDAR,
         Manifest.permission.POST_NOTIFICATIONS
     };
 

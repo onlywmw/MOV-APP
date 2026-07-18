@@ -16,6 +16,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.hermes.receiver.AlarmReceiver;
 import com.hermes.bridge.HermesSocketServer;
 import com.hermes.ssh.SshManager;
 import com.hermes.ui.HermesActivity;
@@ -162,6 +163,9 @@ public class HermesService extends Service {
             // Start the Android bridge socket server early so it is ready when the agent starts.
             mSocketServer = new HermesSocketServer(this);
             mSocketServer.start();
+
+            // 重排重启前未触发的 Hermes 自管闹钟
+            AlarmReceiver.rescheduleAll(this);
 
             // Install the Termux packages needed for the agents and SSH.
             // python3.13/rust/clang 等是完整版 agent 的依赖（轻量 agent 只用 python）。
