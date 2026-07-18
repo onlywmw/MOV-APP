@@ -345,6 +345,22 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "alarm_set",
+            "description": "在系统时钟里定一个真正的闹钟（hour 0-23, minutes 0-59, message 闹钟标签）",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "hour": {"type": "integer"},
+                    "minutes": {"type": "integer"},
+                    "message": {"type": "string"},
+                },
+                "required": ["hour"],
+            },
+        },
+    },
 ]
 
 SYSTEM_PROMPT = """你是 Hermes Android 智能体，运行在用户的 Android 设备上。你可以使用以下工具直接控制手机/平板：

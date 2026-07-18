@@ -20,6 +20,7 @@ import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.VibrationEffect;
+import android.provider.AlarmClock;
 import android.os.Vibrator;
 import android.provider.ContactsContract;
 import android.provider.Settings;
@@ -107,6 +108,8 @@ public class AndroidToolBridge {
                 return handleBrightnessSet(params);
             case "open_url":
                 return handleOpenUrl(params);
+            case "alarm_set":
+                return handleAlarmSet(params);
             default:
                 return new JSONObject().put("error", "Unknown method: " + method);
         }
@@ -547,5 +550,28 @@ public class AndroidToolBridge {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         mContext.startActivity(intent);
         return new JSONObject().put("success", true);
+    }
+
+    private JSONObject handleAlarmSet(@NonNull JSONObject params) throws JSONException {
+        int hour = params.optInt("hour", -1);
+        int minutes = params.optInt("minutes", 0);
+        String message = params.optString("message", "Hermes 提醒");
+        if (hour < 0 || hour > 23 || minutes < 0 || minutes > 59) {
+            return new JSONObject().put("success", false)
+                .put("error", "Invalid time: hour=" + hour + ", minutes=" + minutes);
+        }
+        // MIUI 等 ROM 会静默忽略 SKIP_UI=true 的直接写入（不报错也不生效），
+        // 因此统一打开时钟 App 的预填界面，用户点一下确认即可——最可靠的通用路径。
+        Intent intent = new Intent(AlarmClock.ACTION_SET_ALARM)
+            .putExtra(AlarmClock.EXTRA_HOUR, hour)
+            .putExtra(AlarmClock.EXTRA_MINUTES, minutes)
+            .putExtra(AlarmClock.EXTRA_MESSAGE, message)
+            .putExtra(AlarmClock.EXTRA_SKIP_UI, false)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        mContext.startActivity(intent);
+        return new JSONObject().put("success", true)
+            .put("mode", "clock_ui")
+            .put("hour", hour).put("minutes", minutes)
+            .put("note", "已在时钟 App 打开预填好的闹钟，需用户点一下确认/保存");
     }
 }

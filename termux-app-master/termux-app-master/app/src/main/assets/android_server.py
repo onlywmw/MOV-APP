@@ -58,7 +58,9 @@ ENABLED_TOOLSETS = ["hermes-cli", "skills", "memory", "cronjob",
 ANDROID_PROMPT = (
     "你是运行在用户 Android 设备上的 Hermes 智能体。"
     "可以使用 android_* 系列工具直接操作手机/平板（剪贴板、通知、短信、通讯录、"
-    "应用、音量、亮度、无障碍点击、位置、电量等），也可以使用本地终端和文件工具。"
+    "应用、音量、亮度、无障碍点击、位置、电量、系统闹钟等），也可以使用本地终端和文件工具。"
+    "用户说“定闹钟/闹钟”时优先用 android_alarm_set（系统时钟闹钟，最可靠）；"
+    "用户说“提醒我”时用 cronjob 创建定时任务（结果以系统通知送达）。"
     "所有回复请使用中文。敏感操作（root_shell、锁屏、发短信等）执行前简要说明。"
 )
 
@@ -104,6 +106,22 @@ def resolve_llm_config(env):
 
     if not api_key:
         raise RuntimeError("未配置 API Key，请在设置中填写")
+
+    # 让辅助/后台 LLM 调用（上下文压缩、cron 任务执行、标题生成等）
+    # 也走同一厂商，而不是 config.yaml 里残留的 openrouter 默认值。
+    os.environ.setdefault("HERMES_INFERENCE_PROVIDER",
+                          cfg.get("hermes_provider") or "custom")
+    os.environ.setdefault("HERMES_INFERENCE_MODEL", model)
+    provider_key_env = {
+        "deepseek": "DEEPSEEK_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+        "kimi": "KIMI_API_KEY",
+        "zhipu": "GLM_API_KEY",
+        "qwen": "DASHSCOPE_API_KEY",
+    }.get(provider)
+    if provider_key_env:
+        os.environ.setdefault(provider_key_env, api_key)
+
     return {
         "provider": provider,
         "hermes_provider": cfg.get("hermes_provider"),

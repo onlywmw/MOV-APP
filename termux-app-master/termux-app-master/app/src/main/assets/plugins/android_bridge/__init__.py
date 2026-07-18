@@ -137,6 +137,10 @@ def _open_url(url: str, **_kwargs: Any) -> Dict[str, Any]:
     return _bridge_call("open_url", {"url": url})
 
 
+def _alarm_set(hour: int, minutes: int = 0, message: str = "Hermes 提醒", **_kwargs: Any) -> Dict[str, Any]:
+    return _bridge_call("alarm_set", {"hour": hour, "minutes": minutes, "message": message})
+
+
 def register(ctx: PluginContext) -> None:
     """Plugin entry point called by Hermes during plugin discovery."""
     _register_toolset()
@@ -493,6 +497,24 @@ def register(ctx: PluginContext) -> None:
         check_fn=_check_bridge_available,
         description="Open a URL in the device browser.",
         emoji="🌐",
+    )
+
+    registry.register(
+        name="android_alarm_set",
+        toolset=TOOLSET_NAME,
+        schema={
+            "type": "object",
+            "properties": {
+                "hour": {"type": "integer", "description": "Hour of day, 0-23."},
+                "minutes": {"type": "integer", "description": "Minutes, 0-59.", "default": 0},
+                "message": {"type": "string", "description": "Alarm label text."},
+            },
+            "required": ["hour"],
+        },
+        handler=lambda args, **_kw: _alarm_set(**args),
+        check_fn=_check_bridge_available,
+        description="Set an alarm in the system Clock app (opens prefilled editor for one-tap user confirm). Prefer this over cronjob when the user says 定闹钟/闹钟.",
+        emoji="⏰",
     )
 
     logger.info("Android bridge plugin registered")
