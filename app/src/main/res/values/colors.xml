@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 信使金设计系统 (HANDOFF v2.0 tokens 映射) -->
+<resources>
+    <color name="bg_dark">#F6F6F7</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="accent">#B45309</color>
+    <color name="accent_light">#D97706</color>
+    <color name="text_primary">#09090B</color>
+    <color name="text_secondary">#71717A</color>
+    <color name="text_hint">#A1A1AA</color>
+    <color name="msg_user">#09090B</color>
+    <color name="msg_bot">#FFFFFF</color>
+    <color name="msg_ok">#15803D</color>
+    <color name="msg_err">#B91C1C</color>
+    <color name="input_bg">#FAFAFB</color>
+    <color name="border_soft">#F0F0F2</color>
+    <color name="border_pill">#E4E4E7</color>
+    <color name="tile_active_bg">#FEF3C7</color>
+    <color name="tile_active_border">#FDE68A</color>
+    <color name="tile_active_text">#92400E</color>
+    <color name="chip_bg">#FAFAFB</color>
+    <color name="pill_teal_bg">#FEF3C7</color>
+    <color name="pill_teal_border">#FDE68A</color>
+</resources>

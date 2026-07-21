@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 浅色主题 · 信使金 #D97706 单主色 (红线: 无渐变/无深色主题) -->
+    <style name="Theme.Hermes" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">#D97706</item>
+        <item name="colorPrimaryVariant">#B45309</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#B45309</item>
+        <item name="colorSecondaryVariant">#92400E</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:statusBarColor">#F6F6F7</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorControlActivated">#D97706</item>
+    </style>
+</resources>

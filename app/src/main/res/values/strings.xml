@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MOV</string>
+    <string name="hint_input">输入指令，如：打开手电筒、电量多少…</string>
+    <string name="btn_send">发送</string>
+    <string name="welcome">🧠 MOV v3.0\n输入「帮助」查看所有能力</string>
+</resources>

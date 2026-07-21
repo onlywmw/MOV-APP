@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Brain/circle background -->
+    <path
+        android:fillColor="#6C63FF"
+        android:pathData="M24,4 A20,20 0 1,1 23.99,4 Z" />
+    <!-- Hermes wing symbol (simplified) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,28 L24,14 L32,28 L28,28 L24,21 L20,28 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,32 L24,24 L30,32 L27,32 L24,28 L21,32 Z" />
+</vector>
