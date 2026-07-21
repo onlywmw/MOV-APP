@@ -30,17 +30,24 @@ document.querySelectorAll('.tray-item').forEach(function(el){
   });
 });
 
-/* ============ Sheet 互斥: 打开任何 sheet 前先关所有 ============ */
+/* ============ Sheet 互斥: 全局锁, 同一时刻只能有一个 sheet ============ */
+var _sheetOpen=false;
 function closeAllSheets(){
   document.querySelectorAll('.sheet-mask').forEach(function(m){m.classList.remove('open');});
   document.querySelectorAll('.sheet').forEach(function(s){s.classList.remove('open');});
+  _sheetOpen=false;
+}
+function openSheetExclusive(maskId,sheetId){
+  closeAllSheets();
+  $(maskId).classList.add('open');
+  $(sheetId).classList.add('open');
+  _sheetOpen=true;
 }
 
 /* ============ 新建房间 sheet (两步) ============ */
 var newMode='single';
 $('fabNew').addEventListener('click',function(){
-  closeAllSheets();
-  $('sheetMask').classList.add('open');$('sheetNew').classList.add('open');
+  openSheetExclusive('sheetMask','sheetNew');
   $('sheetStep1').style.display='';$('sheetStep2').style.display='none';
   $('newRoomName').value='';$('newRoomDesc').value='';
   $('newRoomName').focus();ev('打开新建房间 sheet');
@@ -168,7 +175,7 @@ var _opsRoomId=null,_opsConfirmAction=null;
 function openRoomOpsSheet(roomId){
   var room=ROOMS.find(function(r){return r.id===roomId;});
   if(!room)return;
-  closeAllSheets();
+  openSheetExclusive('roomOpsMask','sheetRoomOps');
   _opsRoomId=roomId;
   $('roomOpsName').textContent=room.name;
   /* desk 房间只显示清空 */
@@ -181,8 +188,6 @@ function openRoomOpsSheet(roomId){
   $('roomOpsMenu').style.display='';
   $('roomOpsConfirm').style.display='none';
   $('roomOpsRename').style.display='none';
-  $('roomOpsMask').classList.add('open');
-  $('sheetRoomOps').classList.add('open');
   ev('打开房间操作 sheet');
 }
 function closeRoomOpsSheet(){
@@ -207,7 +212,7 @@ function bindRoomListLongPress(){
   document.querySelectorAll('#roomList .room').forEach(function(el){
     bindLongPress(el,{
       text:'',
-      exec:function(){openRoomOpsSheet(el.getAttribute('data-room'));}
+      exec:function(){if(!_sheetOpen)openRoomOpsSheet(el.getAttribute('data-room'));}
     });
   });
 }
