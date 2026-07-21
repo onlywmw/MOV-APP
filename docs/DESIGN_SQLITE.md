@@ -2,6 +2,7 @@
 
 版本: v1.0
 日期: 2026-07-22
+status: draft — 表结构设计完成，性能基准待实测。在真机验证前不作为实施依据。
 
 ---
 
@@ -173,3 +174,13 @@ v4: chat 文件 + index.json → SQLite
 | `js/chat.js` | push → INSERT；enterRoom → SELECT |
 | `js/files.js` | 文件列表 → SELECT room_files |
 | `MigrationManager.java` | 加 v4 迁移步骤 |
+
+---
+
+## 未解决问题
+
+1. FTS5 跨房间搜索时，`content=` 外部内容表没有 `room_id` 索引，需要验证 `EXPLAIN QUERY PLAN` 的实际表现
+2. 并发写锁的超时时间（expires_at）设在什么值合理？App 被杀后锁残留怎么清理？
+3. 当前性能数字（进房间 ~5ms、写文件 ~2ms）是估算，未在真机上实测。需要 benchmark 脚本
+4. 旧数据迁移（index.json → SQLite）的耗时——200 个文件规模的房间，迁移需要多长时间？
+5. 版本树的分支合并策略：当用户选择保留一个分支丢弃另一个时，被丢弃分支的快照文件是否物理删除？

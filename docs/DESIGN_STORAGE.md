@@ -2,7 +2,9 @@
 
 版本: v3.0
 日期: 2026-07-22
-状态: 📐 design-ready
+状态: ⚠ deprecated — 已被 DESIGN_SQLITE.md 取代
+
+> 本文档的用户场景和五种存储分类仍然有效。技术实现（index.json、文件系统元数据、暴力 grep）已废弃。新的存储方案见 **[DESIGN_SQLITE.md](DESIGN_SQLITE.md)**。
 
 ---
 

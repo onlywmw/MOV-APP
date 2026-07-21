@@ -1,6 +1,6 @@
 # MOV — 多模型协作工作台
 
-> **定义**: 运行在 Android 平板上的多模型协作工作台。人和 AI 在项目房间里共同工作，产出文件。有看板运行轻应用，能直接操控设备。
+> **定义**: 运行在 Android 手机上的多模型协作工作台。人和 AI 在项目房间里共同工作，产出文件。有看板运行轻应用，能直接操控设备。
 
 **完整项目文档**: [docs/MOV_MASTER.md](docs/MOV_MASTER.md)
 
@@ -31,13 +31,12 @@ MOVActivity (WebView 壳)
 
 ## 不可变规则
 
-1. **WebView 壳 + JS 桥模型** — 不可改为纯原生 UI
-2. **指令优先路由** — IntentParser 命中 → 执行; 未命中 → AI
-3. **房间 = 文件仓库** — 文件操作限制在 `/sdcard/mov/rooms/<id>/`
+1. **指令优先路由** — IntentParser 命中 → 执行; 未命中 → AI
+2. **房间 = 文件仓库** — 文件操作限制在房间目录内
+3. **核心交互 WebView，重性能场景走原生** — 版本树 diff、PDF 预览、文件编辑器 → 原生 Activity
 4. **长按 = 右键菜单** — 500ms 触发, 移动 >10px 取消
 5. **Sheet 替代弹窗** — 不用 prompt()/confirm()
-6. **SharedPreferences key 名不可变** — mov_legacy_ai_prefs / mov_legacy_cron_jobs / mov_legacy_skills
-7. **localStorage key 不可变** — mov_legacy_rooms_v2 / mov_legacy_board_apps_v1
+6. **所有持久化 key 变更走 MigrationManager** — 不再有 key 不可变规则
 
 ## 交互规范
 

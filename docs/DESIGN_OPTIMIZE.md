@@ -148,29 +148,16 @@ js/app-files.js  → 文件预览、新建文件、子 tab
 
 ---
 
-## 5. 安全 & 泄漏
+## 5. 安全 & 泄漏（全部待实施）
 
-### 5.1 Widget 权限
-
-`AndroidManifest.xml` — receiver 加 `android:permission` 签名级保护。
-
-### 5.2 XSS
-
-`render.js` — `mkMsg()` 气泡改用 `textContent`。加 `sanitize()` 函数。`board.js` — URL 协议校验。
-
-### 5.3 Process 泄漏
-
-`CapabilityExecutor.java` — 5 个 `Runtime.exec()` 加 `finally { proc.destroy(); }`。
-
-### 改动
-
-| 文件 | 内容 |
-|------|------|
-| `AndroidManifest.xml` | receiver 加 permission |
-| `HermesWidgetProvider.java` | 指令白名单 |
-| `js/render.js` | textContent + sanitize |
-| `js/board.js` | URL 校验 |
-| `CapabilityExecutor.java` | finally destroy |
+| # | 措施 | 状态 | 说明 |
+|---|------|------|------|
+| 5.1 | Widget receiver 加 permission | 待实施 | `HermesWidgetProvider` 加 `android:permission` + 14 条白名单 |
+| 5.2 | XSS: textContent + sanitize | 待实施 | `mkMsg()` 改 textContent, `board.js` URL 校验 |
+| 5.3 | Process 泄漏 | 待实施 | 5 个 `Runtime.exec()` 加 finally destroy |
+| 5.4 | API Key 加密降级警告 | 待实施 | ModelRegistry 加密不可用时弹 toast, 不静默降级 |
+| 5.5 | Cron AI 输出 gate | 待实施 | 默认手动审批 + action 白名单(file.write/notify/tts) |
+| 5.6 | JS 桥参数校验 | 待实施 | 38 个桥方法加 path/roomId/content 统一校验 |
 
 ---
 
