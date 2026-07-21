@@ -152,7 +152,10 @@ js/app-files.js  → 文件预览、新建文件、子 tab
 
 | # | 措施 | 状态 | 说明 |
 |---|------|------|------|
-| 5.1 | Widget receiver 加 permission | 待实施 | `HermesWidgetProvider` 加 `android:permission` + 14 条白名单 |
+| 5.1 | Widget receiver 加 permission | 待实施 | `HermesWidgetProvider` 加 `android:permission` + 白名单 (14 条见下) |
+
+**Widget 白名单 (14 条)**：
+1. 打开手电筒 2. 关闭手电筒 3. 音量调到 {n} 4. 当前音量 5. WiFi状态 6. 震动 7. 亮度调到 {n} 8. 设备信息 9. 截屏 10. ip地址 11. 应用列表 12. 联系人 13. 最近短信 14. 读取剪贴板。禁止：打电话、发短信、写文件、发通知、定位、朗读、点击、滑动
 | 5.2 | XSS: textContent + sanitize | 待实施 | `mkMsg()` 改 textContent, `board.js` URL 校验 |
 | 5.3 | Process 泄漏 | 待实施 | 5 个 `Runtime.exec()` 加 finally destroy |
 | 5.4 | API Key 加密降级警告 | 待实施 | ModelRegistry 加密不可用时弹 toast, 不静默降级 |

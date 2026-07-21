@@ -153,7 +153,16 @@ SKILLS       技能卡片 + 搜索 + 长按移除 + 点击触发
 | **有版本吗** | 版本树 | 无 | 每次新文件 | 版本 | 无 |
 | **用户怎么找** | 追溯版本 | 翻记忆 | 翻日历 | 复用 | 时间线 |
 
-用户场景和五种存储分类见 `docs/DESIGN_STORAGE.md`（⚠ deprecated）。技术实现见 **[DESIGN_SQLITE.md](docs/DESIGN_SQLITE.md)**（draft，待真机验证）。
+**五种存储，五种体验**——MOV 的数据不是"文件"的同义词，是五种使用场景：
+
+| | 产出 | 资料 | 归档 | 模板 | 个人 |
+|------|------|------|------|------|------|
+| 一句话 | AI 和我写的代码 | 甲方/同事传的参考 | Cron 自动报告 | 做过一次下次还用的 | 笔记/歌/健身 |
+| 范围 | 房间内 | 房间内 | 房间内 | 跨房间 | 设备级私有 |
+| 能改吗 | AI和人能 | 不能 | 不能 | 创建者能 | 能 |
+| 有版本吗 | 版本树 | 无 | 每次新文件 | 版本 | 无 |
+
+技术实现见 **[DESIGN_SQLITE.md](docs/DESIGN_SQLITE.md)**（draft，待真机验证）。
 
 ---
 
@@ -228,7 +237,7 @@ SKILLS       技能卡片 + 搜索 + 长按移除 + 点击触发
 | `HermesActivity.java` | 860+ | WebView 壳 + 38 桥方法 |
 | `CapabilityExecutor.java` | 790 | 34 个设备+文件能力 |
 | `StorageManager.java` | 412 | 五种存储核心逻辑 |
-| `StatsCollector.java` | 168 | 匿名统计 |
+| `StatsCollector.java` | 168 | 匿名统计 (已弃用，待移除) |
 | `IntentParser.java` | 254 | 自然语言 → 指令 |
 | `AiClient.java` | ~190 | OpenAI 兼容客户端 |
 | `AiProviderConfig.java` | 131 | AI 配置持久化 |
