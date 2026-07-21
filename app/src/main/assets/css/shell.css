@@ -310,6 +310,17 @@ button,input,textarea{font-family:inherit;}
 .model-none{margin:0 16px 8px;padding:18px;text-align:center;font-size:12px;color:var(--ink-4);}
 .model-add{border:1.5px dashed var(--line);background:transparent;box-shadow:none;justify-content:center;}
 .model-add .md{color:var(--acc-live);font-weight:600;}
+/* 多模型勾选 (新建房间第二步) */
+.mpick{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--panel-2);border-radius:var(--r-md);border:1.5px solid transparent;cursor:pointer;transition:all var(--t-fast);}
+.mpick:active{transform:scale(.99);}
+.mpick.sel{border-color:var(--acc-live);background:var(--acc-tint-2);}
+.mpick .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:700;color:#fff;flex:none;font-style:normal;}
+.mpick-info{flex:1;min-width:0;}
+.mpick-info b{display:block;font-size:13px;font-weight:650;letter-spacing:-.01em;}
+.mpick-info span{display:block;font-size:10.5px;color:var(--ink-4);margin-top:1px;}
+.mcheck{width:20px;height:20px;border-radius:50%;border:1.6px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--acc-live);flex:none;transition:all var(--t-fast);}
+.mpick.sel .mcheck{border-color:var(--acc-live);background:var(--acc-tint-2);}
+.mpick-hint{font-size:10.5px;color:var(--ink-4);text-align:center;padding:4px 0 8px;}
 .loop-banner{margin:0 16px 8px;padding:10px 14px;border:1px dashed #F2DFC2;background:var(--acc-tint-2);border-radius:var(--r-lg);font-size:11px;line-height:1.5;color:var(--acc-strong);}
 .loop-banner b{font-family:var(--font-mono);}
 .loop-chain{display:flex;align-items:center;gap:4px;margin-top:6px;font-family:var(--font-mono);font-size:9px;flex-wrap:wrap;}

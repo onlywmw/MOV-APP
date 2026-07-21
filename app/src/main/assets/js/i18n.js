@@ -121,7 +121,17 @@ var I18N={
     'model.cannotDeleteLast':'至少保留一个模型',
     'model.selectTitle':'选择参与的 AI',
     'model.selectHint':'至少选 2 个模型',
-    'model.selected':'已选'
+    'model.selected':'已选',
+    /* 执行计划 (第3层) */
+    'plan.approve':'批准并执行',
+    'plan.reject':'驳回再议',
+    'plan.approved':'已批准 ✓',
+    'plan.rejected':'已驳回, 待重议',
+    'plan.executing':'已批准 → hermes 逐步执行',
+    'plan.delivered':'方案已执行完毕',
+    'plan.deliverTitle':'交付物已生成',
+    'plan.noOutput':'无文件产出',
+    'plan.reviewHint':'待评审 · 不满意可直接说, 议会再议'
   },
   en:{
     'nav.chat':'Chat','nav.skills':'Skills','nav.runtime':'Runtime',
@@ -241,7 +251,17 @@ var I18N={
     'model.cannotDeleteLast':'At least one model required',
     'model.selectTitle':'Select AI participants',
     'model.selectHint':'Pick at least 2 models',
-    'model.selected':'selected'
+    'model.selected':'selected',
+    /* Execution plan (Layer 3) */
+    'plan.approve':'Approve & Execute',
+    'plan.reject':'Reject & Re-discuss',
+    'plan.approved':'Approved ✓',
+    'plan.rejected':'Rejected, pending re-discussion',
+    'plan.executing':'Approved → hermes executing steps',
+    'plan.delivered':'Plan executed',
+    'plan.deliverTitle':'Deliverables generated',
+    'plan.noOutput':'No file output',
+    'plan.reviewHint':'Pending review · say what to change, council re-discusses'
   }
 };
 function t(key){var d=I18N[LANG]||I18N.zh;return d[key]||I18N.zh[key]||key;}

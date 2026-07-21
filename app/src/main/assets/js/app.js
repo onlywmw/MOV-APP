@@ -56,7 +56,47 @@ $('btnStep2Prev').addEventListener('click',function(){
 });
 
 /* 协作方式选择 */
-document.querySelectorAll('.mopt').forEach(function(el){el.addEventListener('click',function(){newMode=el.getAttribute('data-mode');document.querySelectorAll('.mopt').forEach(function(o){o.classList.toggle('sel',o===el);});});});
+document.querySelectorAll('.mopt').forEach(function(el){el.addEventListener('click',function(){newMode=el.getAttribute('data-mode');document.querySelectorAll('.mopt').forEach(function(o){o.classList.toggle('sel',o===el);});renderModelPicker();});});
+
+/* ============ 多模型: 动态模型勾选 (新建房间第二步) ============ */
+var _pickedModels=[];
+function renderModelPicker(){
+  var wrap=$('modelPicker');
+  if(!wrap)return;
+  if(newMode!=='council'){wrap.style.display='none';return;}
+  wrap.style.display='';
+  var models=B.listModels();
+  /* 默认模型必选 */
+  var defaultModel=models.find(function(m){return m.isDefault;});
+  _pickedModels=models.filter(function(m){return m.isDefault;}).map(function(m){return m.id;});
+  var h='<div class="sh-label">'+t('model.selectTitle')+'</div>';
+  models.forEach(function(m){
+    var isDef=!!m.isDefault;
+    var ready=(m.apiKey&&m.apiKey.length>0)||(m.provider==='ollama');
+    h+='<div class="mpick'+(isDef?' sel':'')+'" data-mid="'+esc(m.id)+'">'
+      +'<i class="av" style="background:'+esc(m.color||'#D97706')+'">'+esc((m.name||'?').charAt(0))+'</i>'
+      +'<div class="mpick-info"><b>'+esc(m.name)+'</b><span>'+(isDef?t('model.default')+' · ':'')+(ready?'':t('model.noKey'))+'</span></div>'
+      +'<span class="mcheck">'+(isDef?'✓':'')+'</span></div>';
+  });
+  h+='<div class="mpick-hint" id="mpickHint">'+t('model.selectHint')+'</div>';
+  wrap.innerHTML=h;
+  document.querySelectorAll('#modelPicker .mpick').forEach(function(el){
+    el.addEventListener('click',function(){
+      var mid=el.getAttribute('data-mid');
+      var m=models.find(function(x){return x.id===mid;});
+      if(m&&m.isDefault)return; /* 默认模型不可取消 */
+      var idx=_pickedModels.indexOf(mid);
+      if(idx>=0){_pickedModels.splice(idx,1);el.classList.remove('sel');el.querySelector('.mcheck').textContent='';}
+      else{_pickedModels.push(mid);el.classList.add('sel');el.querySelector('.mcheck').textContent='✓';}
+      updatePickHint();
+    });
+  });
+  updatePickHint();
+}
+function updatePickHint(){
+  var el=$('mpickHint');
+  if(el)el.textContent=t('model.selected')+' '+_pickedModels.length+' · '+t('model.selectHint');
+}
 
 /* 创建房间 */
 $('btnCreate').addEventListener('click',function(){
@@ -66,7 +106,13 @@ $('btnCreate').addEventListener('click',function(){
     name=desc?desc.slice(0,15):t('sheet.defaultName');
   }
   var id='r'+Date.now();
-  var members=newMode==='council'?['mov','ai-team']:['mov'];
+  /* 多模型: council 模式用勾选的模型 ID; single 模式只用默认 */
+  var members;
+  if(newMode==='council'){
+    members={human:[{who:'you',role:'owner'}],ai:_pickedModels.slice()};
+  }else{
+    members=['mov'];
+  }
 
   /* 动态 seed: 围绕描述生成第一句话 */
   var seed=[];
@@ -91,7 +137,15 @@ $('btnCreate').addEventListener('click',function(){
     last:newMode==='council'?t('sheet.councilReady'):t('sheet.movReady'),
     time:'现在',unread:0,played:false,msgs:[],seed:seed});
   $('newRoomName').value='';$('newRoomDesc').value='';closeSheet();
-  var memberObjs=members.map(function(m){return {who:m,role:m==='mov'?'agent':m};});
+  var memberObjs;
+  if(newMode==='council'){
+    memberObjs=[{who:'you',role:'owner'}].concat(_pickedModels.map(function(mid){
+      var models=B.listModels();var m=models.find(function(x){return x.id===mid;});
+      return {who:mid,role:m?m.role:'ai'};
+    }));
+  }else{
+    memberObjs=[{who:'mov',role:'agent'}];
+  }
   B.initRoom(id,name,desc,memberObjs);
   B.initRoomStorage(id);
   ev('新建房间 '+name+' ('+newMode+')');
@@ -330,6 +384,7 @@ $('btnBoardAddOk').addEventListener('click',confirmBoardAdd);
 /* ============ 初始化 ============ */
 initLang();
 applyI18n();
+refreshModelAvatars(); /* 多模型: 注册表颜色合并进 AV 表 */
 renderRooms();
 setTab('chat');
 setTimeout(function(){refreshRuntime();},600);

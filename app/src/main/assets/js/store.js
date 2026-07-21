@@ -29,7 +29,34 @@ function persistRooms(){
     })));
   }catch(e){}
 }
-var AV={ 'claude':['CL','#52525B'],'gpt-5':['G5','#27272A'],'gemini':['GM','#71717A'],'hermes':['HE','#D97706'],'YOU':['ME','#09090B'] };
+var AV={ 'claude':['CL','#52525B'],'gpt-5':['G5','#27272A'],'gemini':['GM','#71717A'],'hermes':['HE','#D97706'],'mov':['MO','#D97706'],'YOU':['ME','#09090B'] };
+/* 多模型: 把注册表模型的颜色合并进 AV 表 */
+function refreshModelAvatars(){
+  try{
+    var models=B.listModels();
+    models.forEach(function(m){
+      AV[m.id]=[(m.name||'?').slice(0,2).toUpperCase(),m.color||'#D97706'];
+      /* 兼容: 用模型名也能匹配 */
+      AV[m.name]=[(m.name||'?').slice(0,2).toUpperCase(),m.color||'#D97706'];
+    });
+  }catch(e){}
+}
+/* 多模型: 房间 AI 成员 ID 列表 (兼容旧数组格式和新对象格式) */
+function roomAiMembers(r){
+  if(!r.members)return [];
+  if(Array.isArray(r.members))return r.members.filter(function(m){return m!=='mov'&&m!=='hermes'&&m!=='ai-team';});
+  return (r.members.ai)||[];
+}
+/* 多模型: 房间 AI 成员显示名 (查注册表, 查不到用 ID) */
+function roomAiNames(r){
+  var ids=roomAiMembers(r);
+  if(ids.length===0)return [];
+  var models=B.listModels();
+  return ids.map(function(id){
+    var m=models.find(function(x){return x.id===id;});
+    return m?m.name:id;
+  });
+}
 var PHASE_BADGE={'讨论中':'run','收敛中':'run','待确认':'aw','执行中':'run','已交付':'ok','已归档':'off','待评审':'run'};
 var ATT={img:{n:'seat-ref.png',m:'1170×2532 · 428KB',ic:'<span class="thumb"></span>'},file:{n:'PRD-v1.md',m:'Markdown · 3.2KB',ic:'<span class="fic">MD</span>'}};
 

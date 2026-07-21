@@ -10,7 +10,9 @@ function enterRoom(id){
   var r=ROOMS.find(function(x){return x.id===id;});
   r.unread=0;
   $('roomTitle').textContent=r.name;
-  $('roomSub').textContent=(r.mode==='council'?'council · '+r.members.join(' / ')+' · 主持 mov':'单聊 · mov-agent');
+  /* 多模型: 副标题显示真实模型名 */
+  var aiNames=roomAiNames(r);
+  $('roomSub').textContent=(r.mode==='council'?'council · '+(aiNames.length?aiNames.join(' / '):'--')+' · 主持 mov':'单聊 · mov-agent');
   $('roomPhaseBadge').innerHTML=phaseBadge(r.phase);
   var b=$('chatBody');b.innerHTML='';
   if((!r.msgs||r.msgs.length===0)&&(r.msgData&&r.msgData.length>0)){
@@ -30,7 +32,7 @@ function enterRoom(id){
   showView('view-room');setTab('chat');
   renderRooms();persistRooms();
   ev('进入房间 '+r.name);
-  if(r.id==='fit'&&!r.played){r.played=true;runFitCouncil(id);}
+  /* 多模型: fit 房间不再自动触发硬编码剧本, 用户发第一条消息走真实 Council */
 }
 
 /* ---------- 设备指令执行 (真后端) ---------- */
@@ -112,31 +114,165 @@ function sendMsg(){
   }
 }
 
-/* P1-5: 真实 Council 讨论 (异步, 不阻塞 UI) */
+/* 多模型: 真实 Council 讨论 (传房间 modelIds, 结构化输出驱动执行) */
 function runCouncil(id,topic,gen){
   var alive=function(){return genCounter===gen&&curRoomId===id;};
+  var room=ROOMS.find(function(r){return r.id===id;});
+  var modelIds=room?roomAiMembers(room):[];
   setPhase(id,'讨论中');
-  var typing=mkMsg({t:'agent',who:'claude',caret:true});
+  var typing=mkMsg({t:'agent',who:'mov',caret:true});
   showTyping(id,typing);
-  B.councilAsync(topic,function(resp){
+  B.councilAsync(topic,modelIds,function(resp){
     killTyping(typing);
     if(!alive())return;
     if(!resp.ok){
-      push(id,mkMsg({t:'agent',who:'hermes',h:'Council 调用失败: '+esc(resp.error||'未知错误')}));
+      push(id,mkMsg({t:'agent',who:'mov',h:t('council.fail')+esc(resp.error||'未知错误')}));
       setPhase(id,'讨论中');
       return;
     }
+    /* 各模型回复按序展示 */
     (resp.messages||[]).forEach(function(m){
       push(id,mkMsg({t:'agent',who:m.who,role:m.role,h:esc(m.content)}));
     });
     setPhase(id,'收敛中');
-    push(id,mkMsg({t:'sys',h:'COUNCIL 收敛 · hermes 汇总'}));
-    push(id,mkMsg({t:'agent',who:'hermes',h:esc(resp.summary||'(无汇总)')}));
-    setPhase(id,'待评审');
-    var room=ROOMS.find(function(r){return r.id===id;});
-    if(room){room.last='Council 已收敛 · 待评审';renderRooms();persistRooms();}
-    ev('Council 讨论完成');
+    push(id,mkMsg({t:'sys',h:t('council.converge')}));
+    push(id,mkMsg({t:'agent',who:'mov',h:esc(resp.summary||'(无汇总)')}));
+    /* 结构化输出: 投票卡片 */
+    if(resp.votes&&resp.votes.length){renderCouncilVotes(id,resp.votes);}
+    /* 结构化输出: 执行计划 → 审批/自动执行 */
+    var steps=resp.nextSteps||[];
+    if(steps.length){
+      renderCouncilPlan(id,steps,gen);
+      setPhase(id,'待确认');
+    }else{
+      setPhase(id,'待评审');
+    }
+    var room2=ROOMS.find(function(r){return r.id===id;});
+    if(room2){room2.last=t('council.done');renderRooms();persistRooms();}
+    ev('Council 讨论完成 · '+modelIds.length+' 个模型');
   });
+}
+
+/* ---------- 投票卡片 (结构化输出) ---------- */
+function renderCouncilVotes(id,votes){
+  var v=document.createElement('div');v.className='msg wide';
+  var vc=document.createElement('div');vc.className='vote-card';
+  var vh=document.createElement('div');vh.className='vh';vh.textContent='COUNCIL VOTE';
+  vc.appendChild(vh);
+  votes.forEach(function(row){
+    var vr=document.createElement('div');vr.className='vote-row';
+    var av=document.createElement('span');av.className='av';
+    var a=AV[row.model]||AV.mov;
+    av.style.background=a[1];av.textContent=(row.model||'?').slice(0,2).toUpperCase();
+    var nm=document.createElement('span');nm.className='nm';nm.textContent=row.model||'';
+    var op=document.createElement('span');op.style.color='var(--ink-3)';op.textContent=row.opinion||'';
+    var st=document.createElement('span');st.className='st';
+    var okc=document.createElement('span');okc.className='ok';okc.textContent='✓';st.appendChild(okc);
+    vr.appendChild(av);vr.appendChild(nm);vr.appendChild(op);vr.appendChild(st);
+    vc.appendChild(vr);
+  });
+  v.appendChild(vc);
+  push(id,v);
+}
+
+/* ---------- 执行计划卡片 (审批 → 执行 → 交付) ---------- */
+function renderCouncilPlan(id,steps,gen){
+  var room=ROOMS.find(function(r){return r.id===id;});
+  var autoExec=room&&room.autoExec;
+  var p=document.createElement('div');p.className='msg wide';
+  var pc=document.createElement('div');pc.className='plan-card';
+  var phd=document.createElement('div');phd.className='ph';phd.textContent='PLAN · '+steps.length+' 步';pc.appendChild(phd);
+  var pb=document.createElement('div');pb.className='pb';
+  steps.forEach(function(s){
+    var li=document.createElement('li');
+    li.textContent=(typeof s==='string')?s:(s.desc||s.action||JSON.stringify(s));
+    pb.appendChild(li);
+  });
+  pc.appendChild(pb);
+  var pf=document.createElement('div');pf.className='pf';
+  var bAp=document.createElement('button');bAp.className='btn btn-acc';bAp.textContent=t('plan.approve');
+  var bRj=document.createElement('button');bRj.className='btn btn-ghost';bRj.textContent=t('plan.reject');
+  bAp.addEventListener('click',function(){
+    bAp.disabled=true;bRj.disabled=true;bAp.textContent=t('plan.approved');
+    ev('批准方案 → 移交执行');
+    executeCouncilSteps(id,steps,gen);
+  });
+  bRj.addEventListener('click',function(){
+    bAp.disabled=true;bRj.disabled=true;bRj.textContent=t('plan.rejected');
+    ev('驳回方案 → 议会重新讨论');setPhase(id,'讨论中');
+  });
+  pf.appendChild(bAp);pf.appendChild(bRj);pc.appendChild(pf);
+  p.appendChild(pc);
+  push(id,p);
+  /* 自动执行模式: 直接跑 */
+  if(autoExec){bAp.click();}
+}
+
+/* ---------- 逐步执行 (复用 toolNode) ---------- */
+function executeCouncilSteps(id,steps,gen){
+  var alive=function(){return genCounter===gen&&curRoomId===id;};
+  setPhase(id,'执行中');
+  push(id,mkMsg({t:'sys',h:t('plan.executing')}));
+  var produced=[];
+  var i=0;
+  function next(){
+    if(!alive())return;
+    if(i>=steps.length){
+      /* 全部完成 → 交付物卡片 */
+      renderDeliverCard(id,produced);
+      setPhase(id,'已交付');
+      var room=ROOMS.find(function(r){return r.id===id;});
+      if(room){room.last=t('plan.delivered');renderRooms();persistRooms();}
+      ev('方案执行完毕 · '+produced.length+' 个产出');
+      return;
+    }
+    var step=steps[i];i++;
+    var t0=Date.now();
+    /* 字符串步骤 → 当作设备指令/AI 提示; 对象步骤 → 按 action 分发 */
+    if(typeof step==='string'){
+      var out=B.cmd(step);
+      var dur=((Date.now()-t0)/1000).toFixed(2)+'s';
+      var ok=out.indexOf('❌')!==0&&out.indexOf('⚠')!==0;
+      push(id,toolNode('exec',step,dur,esc(out)+'\n<span class="'+(ok?'ok-line':'err-line')+'">'+(ok?'exit 0':'exit 1')+'</span>'));
+      setTimeout(next,300);
+    }else if(step.action==='file.write'){
+      var res=B.saveWorkFile(id,step.args.path,step.args.content||'','mov');
+      var dur2=((Date.now()-t0)/1000).toFixed(2)+'s';
+      push(id,toolNode('file.write',step.args.path,dur2,esc(res.ok?('已写入 '+step.args.path):(res.error||'写入失败'))+'\n<span class="'+(res.ok?'ok-line':'err-line')+'">'+(res.ok?'exit 0':'exit 1')+'</span>'));
+      if(res.ok)produced.push(step.args.path);
+      setTimeout(next,300);
+    }else{
+      /* 其他 action → 走设备指令通道 */
+      var cmdText=step.action+(step.args&&step.args.text?' '+step.args.text:'');
+      var out2=B.cmd(cmdText);
+      var dur3=((Date.now()-t0)/1000).toFixed(2)+'s';
+      var ok2=out2.indexOf('❌')!==0&&out2.indexOf('⚠')!==0;
+      push(id,toolNode(step.action,JSON.stringify(step.args||{}),dur3,esc(out2)+'\n<span class="'+(ok2?'ok-line':'err-line')+'">'+(ok2?'exit 0':'exit 1')+'</span>'));
+      setTimeout(next,300);
+    }
+  }
+  next();
+}
+
+/* ---------- 交付物卡片 ---------- */
+function renderDeliverCard(id,produced){
+  var d=document.createElement('div');d.className='msg wide';
+  var dc=document.createElement('div');dc.className='deliver-card';
+  var ic=document.createElement('span');ic.className='ic';ic.textContent='▣';
+  var info=document.createElement('div');
+  var tt=document.createElement('div');tt.className='tt';tt.textContent=t('plan.deliverTitle');
+  var ss=document.createElement('div');ss.className='ss';
+  ss.textContent=produced.length?produced.join(' · '):t('plan.noOutput');
+  info.appendChild(tt);info.appendChild(ss);
+  var btn=document.createElement('button');btn.className='btn btn-acc';btn.textContent=t('files.view');
+  btn.addEventListener('click',function(){
+    if(produced.length&&curRoomId===id){setSubtab('files');}
+    else{B.toast(t('plan.deliverTitle'));}
+  });
+  dc.appendChild(ic);dc.appendChild(info);dc.appendChild(btn);
+  d.appendChild(dc);
+  push(id,d);
+  push(id,mkMsg({t:'sys',h:t('plan.reviewHint')}));
 }
 
 /* ============ 长按基础设施 (消息 + 技能共用) ============ */
