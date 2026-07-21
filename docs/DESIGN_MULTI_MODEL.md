@@ -2,7 +2,7 @@
 
 版本: v1.0
 日期: 2026-07-22
-状态: 📐 design-ready
+status: design-ready
 依赖: DESIGN_SECURITY.md, DESIGN_REFACTOR.md
 
 ---

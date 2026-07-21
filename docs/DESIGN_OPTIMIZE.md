@@ -2,7 +2,7 @@
 
 版本: v1.0
 日期: 2026-07-22
-状态: 📐 design-ready
+status: design-ready
 
 ---
 
@@ -280,3 +280,10 @@ js/app-files.js  → 文件预览、新建文件、子 tab
 | 5 | `dbExec` 参数化查询 | 设计已包含 | ✅ |
 | 6 | 砍掉遥测 | 删文件 | ⚠ 改天 |
 | 7 | `allowBackup="false"` | 1行 | ✅ |
+--- DESIGN_OPTIMIZE 末尾 ---
+
+## 未解决问题
+
+1. §5 所有安全措施标注'待实施'，需要确定实施优先级和时间节点
+2. app.js 拆分后，原先的全局变量（curRoomId/pending/genCounter）被多个文件共享——需要明确哪些变量移入哪个文件
+3. MovementManager 迁移步骤中聊天的 jsonl→SQLite 迁移脚本未写

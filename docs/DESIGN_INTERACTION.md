@@ -2,7 +2,7 @@
 
 版本: v1.0
 日期: 2026-07-21
-状态: ✅ 已实施
+status: implemented
 
 ---
 
@@ -339,3 +339,10 @@ openRoomOpsSheet(id)
 | Cron 删除保留 confirm | ✅ 保留 confirm | 定时任务影响大, 误删成本高 |
 | 权限保留在运行页 | ⚠️ 暂留 | 移到设置页需改 Java Activity, 下个版本做 |
 | 不实现撤销 | ✅ 不做 | 基础设施太重, toast 反馈足够 |
+--- DESIGN_INTERACTION 末尾 ---
+
+## 未解决问题
+
+1. 技能已合并到运行页，本文 §3.3 已更新入口描述，但其他节可能仍有'技能 tab'残留
+2. 长按基础设施同时绑定 touchstart + mousedown，在手机上的实际响应延迟未测试
+3. Sheet 面板高度 55% 是为平板设计的，手机竖屏可能需要调整

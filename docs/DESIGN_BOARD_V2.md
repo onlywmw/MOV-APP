@@ -2,7 +2,7 @@
 
 版本: v2.0
 日期: 2026-07-21
-状态: 📐 design-ready
+status: design-ready
 取代: DESIGN_BOARD_V1.md
 
 ---
@@ -341,3 +341,10 @@ document.addEventListener('touchstart', function(e) {
 | 内容占比 | Dock 占了 50px | 全屏, 触发条自动隐藏 |
 | 风格 | 2001 年 macOS | 2024 年 iOS/Android 浮层 |
 | 首次体验 | 看到一排图标 | 看到全屏内容, 底部隐约有个条 |
+--- DESIGN_BOARD_V2 末尾 ---
+
+## 未解决问题
+
+1. 底部触发条交互是否适用于手机竖屏——拇指热区在最底部，80px 唤醒区域可能误触系统导航
+2. 应用内容区 iframe 的 sandbox 策略未定义——远程 URL 是否需要限制能力
+3. 自带应用的 HTML 文件目前是空壳——音乐/阅读/健身/笔记需要完整的本地 HTML 实现
