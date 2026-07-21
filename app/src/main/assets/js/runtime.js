@@ -5,7 +5,6 @@
 
 /* ---------- 主刷新 ---------- */
 function refreshRuntime(){
-  refreshHealth();
   refreshProcess();
   refreshChannels();
   refreshModel();
@@ -19,8 +18,8 @@ function refreshRuntime(){
 function refreshHealth(){
   var info=B.aiInfo();
   var aiOn=info.enabled&&info.configured;
-  var perms=B.permState();
-  var chOn=(B.present?1:0)+(aiOn?1:0)+(perms.NOTIFY?1:0);
+  var chs=getChannelState();
+  var chOn=chs.filter(function(c){return c.on;}).length;
   var jobs=B.listCron?B.listCron():[];
   var failedJobs=jobs.filter(function(j){return j.lastStatus&&j.lastStatus.indexOf('FAIL')===0;}).length;
   var problems=(aiOn?0:1)+failedJobs;
@@ -35,7 +34,7 @@ function refreshHealth(){
   var sub=t('rt.healthSub')
     .replace('{a}',(aiOn?'1/1':'0/1'))
     .replace('{b}',jobs.length+'')
-    .replace('{c}',chOn+'/3');
+    .replace('{c}',chOn+'/'+chs.length);
   if(failedJobs>0)sub+=' · '+failedJobs+' FAIL';
   $('healthSub').textContent=sub;
 }
@@ -69,16 +68,77 @@ function formatUptime(ms){
   return h+'h '+m+'m';
 }
 
-/* ---------- CHANNELS ---------- */
-function refreshChannels(){
-  $('chShell').className='st '+(B.present?'on':'off');
-  var w=B.widgetInfo();
-  $('chWidgetLabel').textContent=t('rt.widget')+' ×'+w.count;
-  $('chWidget').className='st '+(w.count>0?'on':'off');
+/* ---------- CHANNELS (摘要 + 详情) ---------- */
+function getChannelState(){
   var info=B.aiInfo();
-  $('chanAiDot').className='st '+(info.enabled&&info.configured?'on':'off');
+  var w=B.widgetInfo();
   var perms=B.permState();
-  $('chNotify').className='st '+(perms.NOTIFY?'on':'off');
+  return [
+    {name:t('rt.shell'), on:B.present},
+    {name:t('rt.widget')+' ×'+w.count, on:w.count>0},
+    {name:t('rt.aiGateway'), on:info.enabled&&info.configured},
+    {name:t('rt.notify'), on:perms.NOTIFY}
+  ];
+}
+function refreshChannels(){
+  var chs=getChannelState();
+  var on=chs.filter(function(c){return c.on;}).length;
+  var el=$('chanSummary');
+  el.textContent=on+'/'+chs.length+' '+t('rt.online');
+  el.style.color=on===chs.length?'#30D158':'#FF3B30';
+}
+
+/* ---------- PERMISSIONS (摘要 + 详情) ---------- */
+var PERM_KEYS=['CAMERA','LOCATION','CONTACTS','SMS','CALL','NOTIFY','SETTINGS'];
+function getPermState(){
+  var perms=B.permState();
+  return PERM_KEYS.map(function(key){return {key:key,name:t('perm.'+key),granted:perms[key]};});
+}
+function renderPermissions(){
+  var ps=getPermState();
+  var granted=ps.filter(function(p){return p.granted;}).length;
+  var el=$('permSummary');
+  el.textContent=granted+'/'+ps.length+' '+t('rt.granted');
+  el.style.color=granted===ps.length?'#30D158':'#FF3B30';
+}
+
+/* ---------- 详情弹层 (通道/权限/技能共用) ---------- */
+function openRunDetail(type){
+  var title='',body='';
+  if(type==='channels'){
+    title=t('rt.channels');
+    var chs=getChannelState();
+    body='<div class="rd-list">'+chs.map(function(c){
+      return '<div class="rd-row"><span class="rd-dot '+(c.on?'on':'off')+'"></span>'
+        +'<span class="rd-name">'+esc(c.name)+'</span>'
+        +'<span class="rd-st '+(c.on?'ok':'bad')+'">'+(c.on?t('rt.online'):t('rt.offline'))+'</span></div>';
+    }).join('')+'</div>';
+  }else if(type==='perms'){
+    title=t('rt.perms2');
+    var ps=getPermState();
+    body='<div class="rd-list">'+ps.map(function(p){
+      return '<div class="rd-row rd-perm" data-perm="'+p.key+'"><span class="rd-dot '+(p.granted?'on':'off')+'"></span>'
+        +'<span class="rd-name">'+esc(p.name)+'</span>'
+        +'<span class="rd-st '+(p.granted?'ok':'bad')+'">'+(p.granted?'✓':'✗')+'</span></div>';
+    }).join('')+'</div><div class="rd-hint">'+t('rt.permHint')+'</div>';
+  }else if(type==='skills'){
+    title=t('skill.title');
+    body=skillCardsHtml('');
+  }
+  $('runDetailTitle').textContent=title;
+  $('runDetailBody').innerHTML=body;
+  $('runDetailMask').style.display='';
+  $('runDetailOverlay').style.display='';
+  if(type==='perms'){
+    document.querySelectorAll('#runDetailBody .rd-perm').forEach(function(el){
+      el.addEventListener('click',function(){B.openAppSettings();});
+    });
+  }
+  if(type==='skills'){bindSkillCards($('runDetailBody'));}
+}
+function closeRunDetail(){
+  $('runDetailMask').style.display='none';
+  $('runDetailOverlay').style.display='none';
 }
 
 /* ---------- MODEL (多模型注册表) ---------- */
@@ -135,21 +195,6 @@ function refreshModel(){
         }
       }
     });
-  });
-}
-
-/* ---------- PERMISSIONS 单行横滚 ---------- */
-var PERM_KEYS=['CAMERA','LOCATION','CONTACTS','SMS','CALL','NOTIFY','SETTINGS'];
-function renderPermissions(){
-  var perms=B.permState();
-  var h='';
-  PERM_KEYS.forEach(function(key){
-    var granted=perms[key];
-    h+='<div class="perm'+(granted?'':' denied')+'" data-perm="'+key+'" title="'+key+': '+(granted?'✓':'✗')+'">'+t('perm.'+key)+'</div>';
-  });
-  $('permGrid').innerHTML=h;
-  document.querySelectorAll('#permGrid .perm').forEach(function(el){
-    el.addEventListener('click',function(){B.openAppSettings();});
   });
 }
 

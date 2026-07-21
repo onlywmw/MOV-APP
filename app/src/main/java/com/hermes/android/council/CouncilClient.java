@@ -1,7 +1,8 @@
 package com.hermes.android.council;
 
 import com.hermes.android.ai.AiClient;
-import com.hermes.android.ai.AiProviderConfig;
+import com.hermes.android.model.ModelConfig;
+import com.hermes.android.model.ModelRegistry;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,101 +16,197 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- * P1-5: Council 多角色讨论。
- * P1-3: 并行化 — 3 个角色并发调用，延迟从 4x 降到 ~1.5x。
+ * Council 多模型真实讨论 (L2)。
+ * 接收 modelIds → 并行调用各模型 → 默认模型汇总 → 结构化输出。
+ * 替代旧版硬编码 claude/gpt-5/gemini 剧本。
  */
 public class CouncilClient {
 
-    private static final String[][] ROLES = {
-        {"claude", "产品", "你是 Claude, 扮演产品经理角色。你关注用户体验、MVP 范围、产品优先级。回答简洁, 3 句话以内。用中文。"},
-        {"gpt-5", "技术", "你是 GPT-5, 扮演技术架构师角色。你关注技术选型、可行性、交付周期。回答简洁, 3 句话以内。用中文。"},
-        {"gemini", "数据", "你是 Gemini, 扮演数据分析/增长角色。你关注留存、指标、用户行为。回答简洁, 3 句话以内。用中文。"}
-    };
+    private static final int MAX_PARALLEL = 3;
+    private static final int TIMEOUT_SECONDS = 30;
 
-    private final AiProviderConfig config;
+    private final ModelRegistry registry;
 
-    public CouncilClient(AiProviderConfig config) {
-        this.config = config;
+    public CouncilClient(ModelRegistry registry) {
+        this.registry = registry;
+    }
+
+    /** 单模型回复 */
+    public static class ModelReply {
+        public final String modelId;
+        public final String name;
+        public final String role;
+        public final String color;
+        public final String content;
+        public final boolean success;
+
+        public ModelReply(String modelId, String name, String role,
+                          String color, String content, boolean success) {
+            this.modelId = modelId;
+            this.name = name;
+            this.role = role;
+            this.color = color;
+            this.content = content;
+            this.success = success;
+        }
     }
 
     /**
-     * 执行 Council 讨论, 返回 JSON:
-     * {"ok":true, "messages":[{"who":"claude","role":"产品","content":"..."},...], "summary":"..."}
+     * 执行 Council 讨论。
+     *
+     * @param topic    议题
+     * @param modelIds 参与模型 ID 列表
+     * @param context  额外上下文 (房间描述/文件列表/前几轮摘要), 可为 null
+     * @return JSON: {ok, messages:[{who,name,role,color,content}], summary, nextSteps}
      */
-    public String discuss(String topic) {
-        if (!config.isAiEnabled() || !config.isConfigured()) {
-            return "{\"ok\":false,\"error\":\"AI 未配置, 无法召开 Council。点右上角 ≡ 设置。\"}";
+    public String discuss(String topic, List<String> modelIds, String context) {
+        if (modelIds == null || modelIds.isEmpty()) {
+            return "{\"ok\":false,\"error\":\"没有选择参与讨论的模型\"}";
         }
 
-        ExecutorService pool = Executors.newFixedThreadPool(3);
+        // 收集有效模型
+        List<ModelConfig> models = new ArrayList<>();
+        for (String id : modelIds) {
+            ModelConfig mc = registry.get(id);
+            if (mc != null && mc.enabled && mc.isConfigured()) {
+                models.add(mc);
+            }
+        }
+        if (models.isEmpty()) {
+            return "{\"ok\":false,\"error\":\"所选模型均未配置或已禁用\"}";
+        }
+
         try {
-            // P1-3: 3 个角色并行调用
-            List<Future<JSONObject>> futures = new ArrayList<>();
-            for (String[] role : ROLES) {
-                final String who = role[0];
-                final String roleName = role[1];
-                final String systemPrompt = role[2];
-                futures.add(pool.submit(new Callable<JSONObject>() {
+            // 构造公共上下文
+            StringBuilder ctx = new StringBuilder();
+            if (context != null && !context.trim().isEmpty()) {
+                ctx.append("项目背景:\n").append(context.trim()).append("\n\n");
+            }
+
+            // 并行调用
+            ExecutorService exec = Executors.newFixedThreadPool(
+                    Math.min(models.size(), MAX_PARALLEL));
+            List<Future<ModelReply>> futures = new ArrayList<>();
+
+            for (ModelConfig mc : models) {
+                final String rolePrompt = buildRolePrompt(mc, topic, ctx.toString());
+                futures.add(exec.submit(new Callable<ModelReply>() {
                     @Override
-                    public JSONObject call() {
-                        try {
-                            AiClient client = new AiClient(config, systemPrompt);
-                            AiClient.AiResponse resp = client.chat(
-                                    "议题: " + topic + "\n请从你的角色角度给出观点。",
-                                    new ArrayList<AiClient.Message>());
-                            JSONObject msg = new JSONObject();
-                            msg.put("who", who);
-                            msg.put("role", roleName);
-                            msg.put("content", resp.success ? resp.content
-                                    : "(调用失败: " + resp.content + ")");
-                            return msg;
-                        } catch (Exception e) {
-                            try {
-                                return new JSONObject()
-                                        .put("who", who)
-                                        .put("role", roleName)
-                                        .put("content", "(异常: " + e.getMessage() + ")");
-                            } catch (Exception ex) {
-                                return null;
-                            }
-                        }
+                    public ModelReply call() {
+                        AiClient client = new AiClient(mc, rolePrompt);
+                        AiClient.AiResponse resp = client.chat(
+                                "议题: " + topic + "\n请从你的角色角度给出观点。简洁, 3 句话以内。");
+                        return new ModelReply(
+                                mc.id,
+                                mc.name.isEmpty() ? mc.getProviderDisplayName() : mc.name,
+                                mc.role,
+                                mc.color,
+                                resp.success ? resp.content : "(调用失败: " + resp.content + ")",
+                                resp.success);
                     }
                 }));
             }
 
-            // 等待所有角色返回 (最慢的决定总延迟)
+            // 收齐结果
             JSONArray messages = new JSONArray();
-            for (Future<JSONObject> f : futures) {
-                JSONObject msg = f.get(60, TimeUnit.SECONDS);
-                if (msg != null) messages.put(msg);
-            }
-
-            // 汇总: 串行第 4 次调用
-            AiClient summarizer = new AiClient(config);
             StringBuilder councilContext = new StringBuilder(
-                    "以下是三位专家对「" + topic + "」的讨论:\n\n");
-            for (int i = 0; i < messages.length(); i++) {
-                JSONObject m = messages.getJSONObject(i);
-                councilContext.append(m.getString("who"))
-                        .append("(").append(m.getString("role")).append("): ")
-                        .append(m.getString("content")).append("\n\n");
-            }
-            councilContext.append("请用 3 句话总结共识和分歧, 给出推荐方案。");
+                    "以下是各专家对「" + topic + "」的讨论:\n\n");
 
-            AiClient.AiResponse summaryResp = summarizer.chat(
-                    councilContext.toString(), new ArrayList<AiClient.Message>());
+            for (Future<ModelReply> f : futures) {
+                ModelReply reply = f.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                JSONObject msg = new JSONObject();
+                msg.put("who", reply.modelId);
+                msg.put("name", reply.name);
+                msg.put("role", reply.role);
+                msg.put("color", reply.color);
+                msg.put("content", reply.content);
+                messages.put(msg);
+
+                councilContext.append(reply.name)
+                        .append("(").append(reply.role).append("): ")
+                        .append(reply.content).append("\n\n");
+            }
+            exec.shutdown();
+
+            // 汇总 (用默认模型)
+            ModelConfig defaultModel = registry.getDefault();
+            String summary = "(汇总失败: 无默认模型)";
+            String nextSteps = "[]";
+
+            if (defaultModel != null && defaultModel.isConfigured()) {
+                String summaryPrompt = "你是会议主持人。请根据以下讨论:\n"
+                        + "1. 用 2-3 句话总结共识和分歧\n"
+                        + "2. 给出推荐方案\n"
+                        + "3. 列出下一步行动 (JSON 数组, 每项 {action, target, detail})\n"
+                        + "用中文回答。";
+
+                AiClient summarizer = new AiClient(defaultModel, summaryPrompt);
+                AiClient.AiResponse summaryResp = summarizer.chat(
+                        councilContext.toString()
+                        + "\n请总结并给出下一步行动计划。"
+                        + "\n下一步行动请用 JSON 数组格式: [{\"action\":\"file.write\",\"target\":\"文件名\",\"detail\":\"内容描述\"}]");
+
+                if (summaryResp.success) {
+                    summary = summaryResp.content;
+                    // 尝试提取 JSON 步骤
+                    nextSteps = extractNextSteps(summaryResp.content);
+                }
+            }
 
             JSONObject result = new JSONObject();
             result.put("ok", true);
             result.put("messages", messages);
-            result.put("summary", summaryResp.success ? summaryResp.content : "(汇总失败)");
+            result.put("summary", summary);
+            result.put("nextSteps", nextSteps);
             return result.toString();
 
+        } catch (java.util.concurrent.TimeoutException e) {
+            return "{\"ok\":false,\"error\":\"讨论超时 (>" + TIMEOUT_SECONDS + "s), 请检查网络\"}";
         } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "未知错误";
-            return "{\"ok\":false,\"error\":\"Council 调用异常: " + msg + "\"}";
-        } finally {
-            pool.shutdownNow();
+            return "{\"ok\":false,\"error\":\"Council 调用异常: " + e.getMessage() + "\"}";
         }
+    }
+
+    /** 兼容旧接口: 用所有已启用模型 */
+    public String discuss(String topic) {
+        List<String> ids = new ArrayList<>();
+        for (ModelConfig mc : registry.list()) {
+            if (mc.enabled && mc.isConfigured()) ids.add(mc.id);
+        }
+        return discuss(topic, ids, null);
+    }
+
+    /** 构造角色 system prompt */
+    private String buildRolePrompt(ModelConfig mc, String topic, String context) {
+        String roleName = mc.role != null && !mc.role.isEmpty() ? mc.role : "通用";
+        String name = mc.name.isEmpty() ? mc.getProviderDisplayName() : mc.name;
+        return "你是 " + name + ", 扮演" + roleName + "角色。"
+                + "你关注" + roleFocus(roleName) + "。"
+                + "回答简洁, 3 句话以内。用中文。"
+                + (mc.systemPrompt != null && !mc.systemPrompt.trim().isEmpty()
+                   ? "\n补充指令: " + mc.systemPrompt : "");
+    }
+
+    private String roleFocus(String role) {
+        switch (role) {
+            case "产品": return "用户体验、MVP 范围、产品优先级";
+            case "技术": return "技术选型、架构可行性、交付周期";
+            case "数据": return "留存、指标、用户行为分析";
+            default:     return "全局视角、风险与机会";
+        }
+    }
+
+    /** 从汇总文本中提取 JSON 步骤数组 */
+    private String extractNextSteps(String text) {
+        try {
+            int start = text.indexOf('[');
+            int end = text.lastIndexOf(']');
+            if (start >= 0 && end > start) {
+                String json = text.substring(start, end + 1);
+                new JSONArray(json); // 验证合法性
+                return json;
+            }
+        } catch (Exception ignored) {}
+        return "[]";
     }
 }

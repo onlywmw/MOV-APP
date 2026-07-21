@@ -39,6 +39,7 @@ public class AiClient {
     }
 
     private final AiProviderConfig config;
+    private final com.hermes.android.model.ModelConfig modelConfig;
 
     /** 临时覆盖 system prompt（仅本次实例，不持久化）。
      *  用于 Council 等多角色场景，避免并发写 SharedPreferences。 */
@@ -46,12 +47,47 @@ public class AiClient {
 
     public AiClient(AiProviderConfig config) {
         this.config = config;
+        this.modelConfig = null;
     }
 
     /** 构造时指定临时 system prompt，不修改 SharedPreferences */
     public AiClient(AiProviderConfig config, String systemPrompt) {
         this.config = config;
+        this.modelConfig = null;
         this.overrideSystemPrompt = systemPrompt;
+    }
+
+    /** 从 ModelConfig 构造 (多模型场景, 不依赖全局 AiProviderConfig) */
+    public AiClient(com.hermes.android.model.ModelConfig mc) {
+        this.config = null;
+        this.modelConfig = mc;
+    }
+
+    /** 从 ModelConfig 构造 + 临时 system prompt */
+    public AiClient(com.hermes.android.model.ModelConfig mc, String systemPrompt) {
+        this.config = null;
+        this.modelConfig = mc;
+        this.overrideSystemPrompt = systemPrompt;
+    }
+
+    private String getBaseUrl() {
+        return modelConfig != null ? modelConfig.getEffectiveBaseUrl() : config.getBaseUrl();
+    }
+
+    private String getApiKey() {
+        return modelConfig != null ? modelConfig.apiKey : config.getApiKey();
+    }
+
+    private String getModelName() {
+        return modelConfig != null ? modelConfig.getEffectiveModel() : config.getModel();
+    }
+
+    private String getSystemPrompt() {
+        if (overrideSystemPrompt != null) return overrideSystemPrompt;
+        if (modelConfig != null && modelConfig.systemPrompt != null
+                && !modelConfig.systemPrompt.trim().isEmpty()) return modelConfig.systemPrompt;
+        if (config != null) return config.getSystemPrompt();
+        return "你是 MOV，一个运行在 Android 平板上的多模型协作工作台。回答用中文。";
     }
 
     public AiResponse chat(String userText) {
@@ -64,7 +100,7 @@ public class AiClient {
     public AiResponse chat(String userText, List<Message> history) {
         HttpURLConnection conn = null;
         try {
-            String baseUrl = normalizeBaseUrl(config.getBaseUrl());
+            String baseUrl = normalizeBaseUrl(getBaseUrl());
             URL url = new URL(baseUrl + "/chat/completions");
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -72,20 +108,19 @@ public class AiClient {
             conn.setReadTimeout(60000);
             conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-            String apiKey = config.getApiKey();
+            String apiKey = getApiKey();
             if (apiKey != null && !apiKey.trim().isEmpty()) {
                 conn.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
             }
 
             JSONObject body = new JSONObject();
-            body.put("model", config.getModel());
+            body.put("model", getModelName());
             body.put("stream", false);
 
             JSONArray messages = new JSONArray();
             messages.put(new JSONObject()
                     .put("role", "system")
-                    .put("content", overrideSystemPrompt != null
-                            ? overrideSystemPrompt : config.getSystemPrompt()));
+                    .put("content", getSystemPrompt()));
 
             if (history != null) {
                 for (Message m : history) {

@@ -367,12 +367,6 @@ $('btnCronCreate').addEventListener('click',function(){
   ev('创建 Cron: '+text);
 });
 
-/* 技能搜索 (运行页内) */
-$('skillSearch').addEventListener('input',function(){
-  var skills=B.listSkills();
-  renderSkillList(skills,$('skillSearch').value.trim());
-});
-
 /* ============ 看板事件绑定 ============ */
 $('boardTrigger').addEventListener('click',openBoardPanel);
 $('boardPanelMask').addEventListener('click',closeBoardPanel);
@@ -380,6 +374,15 @@ $('boardPanelClose').addEventListener('click',closeBoardPanel);
 $('btnBoardAddClose').addEventListener('click',closeBoardAddSheet);
 $('boardAddMask').addEventListener('click',closeBoardAddSheet);
 $('btnBoardAddOk').addEventListener('click',confirmBoardAdd);
+
+/* ============ 运行页: 三行入口 → 详情弹层 ============ */
+$('rowChannels').addEventListener('click',function(){openRunDetail('channels');});
+$('rowPerms').addEventListener('click',function(){openRunDetail('perms');});
+$('rowSkills').addEventListener('click',function(){openRunDetail('skills');});
+$('runDetailClose').addEventListener('click',closeRunDetail);
+$('runDetailMask').addEventListener('click',closeRunDetail);
+/* 新增模型 → 打开设置页 */
+$('btnAddModel').addEventListener('click',function(){B.openSettings();});
 
 /* ============ 初始化 ============ */
 initLang();

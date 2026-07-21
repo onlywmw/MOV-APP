@@ -115,6 +115,7 @@ public class CapabilityExecutor {
             case "file.read":     return doFileRead(cmd);
             case "file.delete":   return doFileDelete(cmd);
             case "file.mkdir":    return doFileMkdir(cmd);
+            case "http.get":      return doHttpGet(cmd);
             default:
                 return CommandResult.fail("未知能力: " + cmd.getCapability());
         }
@@ -825,6 +826,47 @@ public class CapabilityExecutor {
             return CommandResult.ok("已创建目录: " + path);
         } catch (Exception e) {
             return CommandResult.fail("创建目录失败: " + e.getMessage());
+        }
+    }
+
+    /** L3: HTTP GET 能力 — agent 执行管线可调用 */
+    private CommandResult doHttpGet(ParsedCommand cmd) {
+        String url = cmd.getStringArg("url", "");
+        if (url.isEmpty()) return CommandResult.fail("需要 url 参数");
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            return CommandResult.fail("url 必须以 http:// 或 https:// 开头");
+        }
+        java.net.HttpURLConnection conn = null;
+        try {
+            java.net.URL u = new java.net.URL(url);
+            conn = (java.net.HttpURLConnection) u.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            int code = conn.getResponseCode();
+            java.io.InputStream is = code >= 200 && code < 300
+                    ? conn.getInputStream() : conn.getErrorStream();
+            StringBuilder sb = new StringBuilder();
+            if (is != null) {
+                java.io.BufferedReader br = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8));
+                String line;
+                int lines = 0;
+                while ((line = br.readLine()) != null && lines < 200) {
+                    sb.append(line).append("\n");
+                    lines++;
+                }
+                br.close();
+            }
+            String body = sb.toString().trim();
+            if (body.length() > 4000) body = body.substring(0, 4000) + "\n…(截断)";
+            return CommandResult.ok("HTTP " + code + "\n" + body);
+        } catch (java.net.SocketTimeoutException e) {
+            return CommandResult.fail("请求超时: " + url);
+        } catch (Exception e) {
+            return CommandResult.fail("HTTP GET 失败: " + e.getMessage());
+        } finally {
+            if (conn != null) conn.disconnect();
         }
     }
 }

@@ -128,13 +128,7 @@
     <div class="view" id="view-run">
       <div class="abar"><div><h4 data-i18n="rt.title">运行</h4><div class="sub" id="runSub" data-i18n="rt.sub">原生能力引擎</div></div><span class="grow"></span><span class="ico-btn" id="btnRunRefresh">⟳</span></div>
       <div class="sbody">
-        <!-- 健康总结条 (mockup health) -->
-        <div class="health ok" id="healthCard">
-          <span class="hd"></span>
-          <div style="min-width:0"><b id="healthTitle">—</b><div class="hs" id="healthSub">—</div></div>
-        </div>
-
-        <!-- PROCESS -->
+        <!-- AGENT 卡片 (含通道/权限/技能) -->
         <div class="proc-card">
           <div class="head"><span class="pdot"></span>mov-agent · ANDROID</div>
           <div class="proc-line">$ pid <b id="rtPid">--</b> · <span data-i18n="rt.uptime">运行时长</span> <span class="val" id="rtUptime">--</span></div>
@@ -143,34 +137,43 @@
             <div class="m"><b id="rtCmds">--<i data-i18n="rt.times">次</i></b><span data-i18n="rt.cmds">指令执行</span><div class="bar"><i id="rtCmdBar" style="width:0%"></i></div></div>
           </div>
           <div class="proc-line" style="margin-top:4px"><span data-i18n="rt.lastCmd">最近指令</span> <b id="rtLastCmdName">--</b> · <span class="val" id="rtLastCmd">--</span> ms</div>
+          <!-- 三行入口: 点击进入详情 -->
+          <div class="proc-row" id="rowChannels">
+            <span class="pr-label" data-i18n="rt.channels">通道</span>
+            <span class="pr-val" id="chanSummary">--</span>
+            <span class="pr-arrow">›</span>
+          </div>
+          <div class="proc-row" id="rowPerms">
+            <span class="pr-label" data-i18n="rt.perms2">权限</span>
+            <span class="pr-val" id="permSummary">--</span>
+            <span class="pr-arrow">›</span>
+          </div>
+          <div class="proc-row" id="rowSkills">
+            <span class="pr-label" data-i18n="skill.title">技能</span>
+            <span class="pr-val" id="skillSummary">--</span>
+            <span class="pr-arrow">›</span>
+          </div>
         </div>
 
-        <!-- CHANNELS -->
-        <div class="sub-head" data-i18n="rt.channels">通道</div>
-        <div class="chan-grid">
-          <div class="chan"><span class="nm" data-i18n="rt.shell">应用壳</span><span class="st" id="chShell"></span></div>
-          <div class="chan"><span class="nm" id="chWidgetLabel" data-i18n="rt.widget">小组件</span><span class="st" id="chWidget"></span></div>
-          <div class="chan"><span class="nm" data-i18n="rt.aiGateway">AI 网关</span><span class="st" id="chanAiDot"></span></div>
-          <div class="chan"><span class="nm" data-i18n="rt.notify">通知</span><span class="st" id="chNotify"></span></div>
+        <!-- 详情弹层 (通道/权限/技能共用) -->
+        <div class="preview-mask" id="runDetailMask" style="display:none"></div>
+        <div class="preview-overlay" id="runDetailOverlay" style="display:none">
+          <div class="preview-bar">
+            <span class="preview-name" id="runDetailTitle"></span>
+            <span class="sheet-close" id="runDetailClose">✕</span>
+          </div>
+          <div class="preview-body" id="runDetailBody"></div>
         </div>
-
-        <!-- CRON (v3: 从自动 tab 移入) -->
-        <div class="sub-head"><span data-i18n="rt.cron">定时任务</span> · <span id="cronSub">0</span></div>
-        <div class="auto-input"><input class="field" id="cronInput" data-i18n-ph="rt.cronInput" placeholder="自然语言创建任务 · 如: 每天 8:30 汇总邮箱" aria-label="创建任务"><button class="go" id="btnCronCreate" data-i18n="rt.cronCreate">创建</button></div>
-        <div id="cronJobList"></div>
 
         <!-- MODEL -->
         <div class="sub-head" data-i18n="rt.model">模型</div>
         <div id="modelList"></div>
+        <button class="btn btn-ghost" id="btnAddModel" style="margin:0 16px 12px;width:calc(100% - 32px);justify-content:center" data-i18n="rt.addModel">新增模型</button>
 
-        <!-- PERMISSIONS 单行横滚 -->
-        <div class="sub-head" data-i18n="rt.perms">权限 · 点击跳设置</div>
-        <div class="perm-scroll" id="permGrid"></div>
-
-        <!-- SKILLS (v4: 从独立 tab 移回运行页) -->
-        <div class="sub-head" id="skillHead">技能</div>
-        <div class="auto-input"><input class="field" id="skillSearch" data-i18n-ph="skill.search" placeholder="搜索技能…" aria-label="搜索技能"></div>
-        <div id="skillList"></div>
+        <!-- CRON -->
+        <div class="sub-head"><span data-i18n="rt.cron">定时任务</span> · <span id="cronSub">0</span></div>
+        <div class="auto-input"><input class="field" id="cronInput" data-i18n-ph="rt.cronInput" placeholder="自然语言创建任务 · 如: 每天 8:30 汇总邮箱" aria-label="创建任务"><button class="go" id="btnCronCreate" data-i18n="rt.cronCreate">创建</button></div>
+        <div id="cronJobList"></div>
       </div>
     </div>
 

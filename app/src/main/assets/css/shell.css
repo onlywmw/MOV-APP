@@ -285,6 +285,25 @@ button,input,textarea{font-family:inherit;}
 .proc-meters .m span{font-size:8.5px;color:#8E8E93;letter-spacing:.08em;}
 .proc-meters .m .bar{height:3px;background:#3A3A3C;border-radius:2px;margin-top:5px;overflow:hidden;}
 .proc-meters .m .bar i{display:block;height:100%;background:var(--acc-live);border-radius:2px;animation:nodepulse 2.4s infinite;}
+/* 暗色卡片内部: 三行可点击入口 */
+.proc-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 12px;background:#2C2C2E;border-radius:10px;cursor:pointer;transition:background var(--t-fast),transform var(--t-fast);}
+.proc-row:active{background:#3A3A3C;transform:scale(.985);}
+.proc-row .pr-label{font-size:11px;font-weight:600;color:#E5E5EA;flex:none;}
+.proc-row .pr-val{font-family:var(--font-mono);font-size:10px;color:#8E8E93;flex:1;text-align:right;}
+.proc-row .pr-arrow{font-size:15px;color:#636366;flex:none;}
+/* 详情弹层内容 */
+.rd-list{display:flex;flex-direction:column;gap:8px;}
+.rd-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel-2);border-radius:var(--r-md);transition:transform var(--t-fast);}
+.rd-row:active{transform:scale(.98);}
+.rd-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.rd-dot.on{background:var(--ok-dot);animation:nodepulse 1.8s infinite;}
+.rd-dot.off{background:var(--ink-4);}
+.rd-name{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--ink-1);flex:1;}
+.rd-st{font-family:var(--font-mono);font-size:11px;font-weight:700;flex:none;}
+.rd-st.ok{color:var(--ok);}
+.rd-st.bad{color:var(--err);}
+.rd-hint{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-4);text-align:center;margin-top:12px;}
+.rd-empty{padding:24px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--ink-4);}
 .chan-grid{margin:0 16px 12px;display:grid;grid-template-columns:1fr 1fr;gap:7px;}
 .chan{background:var(--panel);border-radius:var(--r-md);padding:10px 13px;display:flex;align-items:center;gap:8px;transition:all var(--t-fast);cursor:pointer;box-shadow:var(--sh-1);}
 .chan:active{transform:scale(.98);}
