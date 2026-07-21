@@ -153,7 +153,7 @@ SKILLS       技能卡片 + 搜索 + 长按移除 + 点击触发
 | **有版本吗** | 版本树 | 无 | 每次新文件 | 版本 | 无 |
 | **用户怎么找** | 追溯版本 | 翻记忆 | 翻日历 | 复用 | 时间线 |
 
-详见 `docs/DESIGN_STORAGE.md`。
+用户场景和五种存储分类见 `docs/DESIGN_STORAGE.md`（⚠ deprecated）。技术实现见 **[DESIGN_SQLITE.md](docs/DESIGN_SQLITE.md)**（draft，待真机验证）。
 
 ---
 
@@ -164,7 +164,7 @@ SKILLS       技能卡片 + 搜索 + 长按移除 + 点击触发
 ```
 设置 ≡
 ├─ AI 团队 (DeepSeek/Qwen/Ollama 四选一)
-├─ 偏好 (语言 中文/English)
+├─ 偏好 (语言 — 只维护中文, 英文 key 保留不更新)
 ├─ 帮助改进 MOV (匿名统计开关 + 预览)
 └─ 关于
 ```
@@ -187,13 +187,9 @@ SKILLS       技能卡片 + 搜索 + 长按移除 + 点击触发
 
 ---
 
-## 8. 匿名统计 (TELEMETRY)
+## 8. 匿名统计 (已砍掉)
 
-- 默认关闭，用户主动开启
-- 只传统计数字 (AI 调用次数/延迟/错误, 会话时长, Cron 执行)
-- 不传: 聊天文字/文件名/Key/设备信息/位置
-- 本地聚合 24h 一次上报 (Supabase, endpoint 待配置)
-- 设置页可预览即将上报的 JSON
+用户基数 <1000，不做遥测。`DESIGN_TELEMETRY.md` 已删除。
 
 ---
 
@@ -254,7 +250,7 @@ SKILLS       技能卡片 + 搜索 + 长按移除 + 点击触发
 | `hermes-shell.html` | ~230 | UI 骨架 |
 | `css/shell.css` | ~400 | 设计系统 |
 | `js/store.js` | 41 | 数据层 + 持久化 |
-| `js/i18n.js` | ~180 | 中英双语字典 (150+ 条) |
+| `js/i18n.js` | ~180 | 中英双语字典 (英文不维护, 只维护中文) |
 | `js/bridge.js` | ~80 | MOVBridge 封装 (38 方法) |
 | `js/render.js` | 140 | DOM 渲染 |
 | `js/chat.js` | 235 | 消息路由 + 长按 + 删除 + 清空 |
@@ -285,8 +281,8 @@ SKILLS       技能卡片 + 搜索 + 长按移除 + 点击触发
 | `docs/DESIGN_INTERACTION.md` | 交互系统详细设计 | ✅ 已实施 |
 | `docs/DESIGN_ROOM_V3.md` | 房间 v3 设计 (文件仓库) | ✅ 已实施 |
 | `docs/DESIGN_BOARD_V2.md` | 看板 v2 设计 (悬浮切换) | ✅ 已实施 |
-| `docs/DESIGN_STORAGE.md` | 存储系统 v3 (五种存储) | 🔧 部分实施 |
-| `docs/DESIGN_TELEMETRY.md` | 匿名统计设计 | 🔧 骨架完成 |
+| `docs/DESIGN_STORAGE.md` | 存储用户场景 (⚠ deprecated) | — |
+| `docs/DESIGN_SQLITE.md` | SQLite 存储方案 (draft) | 🔧 待真机验证 |
 # MOV — 运行状态 & 使用场景
 
 版本: v1.0

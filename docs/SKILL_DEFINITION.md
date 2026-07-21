@@ -21,7 +21,8 @@ status: draft
   "id": "proxy-test",
   "name": "代理节点连通性测试",
   "desc": "用本地内核测试代理节点真实连通性",
-  "trigger": "/test-proxy",          // 用户在聊天里输入这个 → 触发
+  "activation": "click",              // 当前: click (点击卡片)。future: trigger_word (聊天输入触发词)
+  "trigger": "/test-proxy",           // future: 当 activation=trigger_word 时生效
   "prompt": "请帮我测试以下代理节点...", // 发给 AI 的 prompt 模板
   "model": "deepseek_v4",            // 用哪个模型
   "source": "auto",                  // "auto"(自动生成) | "manual"(用户创建)
@@ -37,8 +38,7 @@ status: draft
 ## 生命周期
 
 ```
-用户说触发词 → IntentParser 匹配 → 路由到 SkillStore → 取 prompt 模板 → 发给指定 AI → 返回结果
-                   ↑ 如果同时命中设备指令，设备指令优先
+当前：点击技能卡片 → SkillStore.recordUse → toast。vNext：用户说触发词 → IntentParser 匹配 → 路由到 SkillStore → 取 prompt 模板 → 发给指定 AI → 返回结果。如果同时命中设备指令，设备指令优先。
 ```
 
 ---

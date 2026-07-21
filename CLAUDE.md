@@ -51,6 +51,12 @@ MOVActivity (WebView 壳)
 
 [Java 17 文件] [JS 12 文件] [HTML 1] [CSS 1] — 详见 MASTER.md §10
 
+## 语言
+
+只维护中文。`js/i18n.js` 英文 key 保留不更新。除非确定出海，否则不做 i18n。
+
+---
+
 ## 当前待办
 
 | 优先级 | 事项 |
