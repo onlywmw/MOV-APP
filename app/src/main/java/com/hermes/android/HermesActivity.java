@@ -106,8 +106,6 @@ public class HermesActivity extends AppCompatActivity {
         cronManager = new CronManager(this);
         skillStore = new SkillStore(this);
         statsCollector = new StatsCollector(this);
-        StorageManager.init(this);
-        capabilityExecutor.init(this);
         statsCollector.onSessionStart();
         statsCollector.tryReport();
 

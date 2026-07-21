@@ -9,6 +9,7 @@ public class HermesApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        MigrationManager.run(this);
         ensureDefaultsAndCleanup();
     }
 

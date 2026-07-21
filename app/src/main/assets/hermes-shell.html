@@ -131,12 +131,17 @@
         <!-- AGENT 卡片 (含通道/权限/技能) -->
         <div class="proc-card">
           <div class="head"><span class="pdot"></span>mov-agent · ANDROID</div>
-          <div class="proc-line">$ pid <b id="rtPid">--</b> · <span data-i18n="rt.uptime">运行时长</span> <span class="val" id="rtUptime">--</span></div>
-          <div class="proc-meters">
-            <div class="m"><b id="rtMem">--<i> MB</i></b><span data-i18n="rt.mem">JVM 内存</span><div class="bar"><i id="rtMemBar" style="width:0%"></i></div></div>
-            <div class="m"><b id="rtCmds">--<i data-i18n="rt.times">次</i></b><span data-i18n="rt.cmds">指令执行</span><div class="bar"><i id="rtCmdBar" style="width:0%"></i></div></div>
+          <div class="proc-line"><span data-i18n="rt.uptime">运行时长</span> <span class="val" id="rtUptime">--</span></div>
+          <!-- 开发者指标 (默认折叠) -->
+          <div class="dev-toggle" id="devToggle" style="font-size:10px;color:var(--ink-4);cursor:pointer;margin:4px 0">▸ 开发者信息</div>
+          <div id="devMetrics" style="display:none">
+            <div class="proc-line">$ pid <b id="rtPid">--</b></div>
+            <div class="proc-meters">
+              <div class="m"><b id="rtMem">--<i> MB</i></b><span data-i18n="rt.mem">JVM 内存</span><div class="bar"><i id="rtMemBar" style="width:0%"></i></div></div>
+              <div class="m"><b id="rtCmds">--<i data-i18n="rt.times">次</i></b><span data-i18n="rt.cmds">指令执行</span><div class="bar"><i id="rtCmdBar" style="width:0%"></i></div></div>
+            </div>
+            <div class="proc-line" style="margin-top:4px"><span data-i18n="rt.lastCmd">最近指令</span> <b id="rtLastCmdName">--</b> · <span class="val" id="rtLastCmd">--</span> ms</div>
           </div>
-          <div class="proc-line" style="margin-top:4px"><span data-i18n="rt.lastCmd">最近指令</span> <b id="rtLastCmdName">--</b> · <span class="val" id="rtLastCmd">--</span> ms</div>
           <!-- 三行入口: 点击进入详情 -->
           <div class="proc-row" id="rowChannels">
             <span class="pr-label" data-i18n="rt.channels">通道</span>
@@ -268,6 +273,11 @@
 <script src="js/files.js"></script>
 <script src="js/board.js"></script>
 <script src="js/runtime.js"></script>
+<script src="js/app-chat.js"></script>
+<script src="js/app-room.js"></script>
+<script src="js/app-files.js"></script>
+<script src="js/app-board.js"></script>
+<script src="js/app-run.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

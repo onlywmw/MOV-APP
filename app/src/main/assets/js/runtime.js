@@ -40,10 +40,13 @@ function refreshHealth(){
 }
 
 /* ---------- PROCESS ---------- */
+/* ---------- PROCESS (DESIGN_POLISH #4: 开发者指标下沉) ---------- */
 function refreshProcess(){
   var s=B.runtimeStats();
-  if(s.pid!=null)$('rtPid').textContent=s.pid;
+  /* 首屏: 运行时长 (用户看得懂) */
   if(s.uptimeMs!=null)$('rtUptime').textContent=formatUptime(s.uptimeMs);
+  /* 折叠区: pid / 内存 / 指令计数 (开发者信息) */
+  if(s.pid!=null)$('rtPid').textContent=s.pid;
   if(s.memUsedMb!=null&&s.memMaxMb!=null){
     $('rtMem').innerHTML=s.memUsedMb+'<i> / '+s.memMaxMb+' MB</i>';
     var pct=Math.min(100,Math.round(s.memUsedMb/s.memMaxMb*100));
@@ -56,7 +59,7 @@ function refreshProcess(){
   }
   if(s.lastCmdMs!=null)$('rtLastCmd').textContent=s.lastCmdMs;
   if(s.lastCmdName!=null)$('rtLastCmdName').textContent=s.lastCmdName||'--';
-  $('runSub').textContent=t('rt.sub')+' · pid '+(s.pid||'--');
+  $('runSub').textContent=t('rt.sub');
 }
 
 function formatUptime(ms){
