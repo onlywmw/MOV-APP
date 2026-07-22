@@ -25,10 +25,14 @@ function closeNewRoomDialog(){
   $('newRoomMask').classList.remove('open');
 }
 
-$('newRoomMask').addEventListener('click',function(e){
-  if(e.target===this)closeNewRoomDialog();
+$('newRoomMask').addEventListener('click',closeNewRoomDialog);
+$('newRoomDialog').addEventListener('click',function(e){
+  e.stopPropagation();
 });
-$('btnSheetClose').addEventListener('click',closeNewRoomDialog);
+$('btnSheetClose').addEventListener('click',function(e){
+  e.stopPropagation();
+  closeNewRoomDialog();
+});
 
 $('btnCreate').addEventListener('click',function(){
   var name=$('newRoomName').value.trim()||'新项目';
