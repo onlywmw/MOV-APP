@@ -82,11 +82,10 @@ function setTab(t){
 document.querySelectorAll('.bnav button').forEach(function(b){b.addEventListener('click',function(){setTab(b.getAttribute('data-tab'));ev('切换 Tab → '+b.getAttribute('data-tab'));});});
 
 /* ---------- 消息渲染 ---------- */
-/* P1-8: 支持字符串 key (旧 ATT) 和文件对象 (新 pickFile) */
-function attName(a){return typeof a==='string'?(ATT[a]?ATT[a].n:a):(a&&a.name?a.name:'文件');}
+/* P1-8: 附件为 pickFile 文件对象; 旧持久化的字符串 key 直接显示原文 */
+function attName(a){return typeof a==='string'?a:(a&&a.name?a.name:'文件');}
 function formatBytes(b){if(b<1024)return b+'B';if(b<1048576)return (b/1024).toFixed(1)+'KB';return (b/1048576).toFixed(1)+'MB';}
 function attHtml(a){
-  if(typeof a==='string'&&ATT[a]){var s=ATT[a];return '<div class="att">'+s.ic+'<div><div class="an">'+s.n+'</div><div class="am">'+s.m+'</div></div></div>';}
   var name=attName(a),size=a&&a.size?formatBytes(a.size):'';
   return '<div class="att"><span class="fic">F</span><div><div class="an">'+esc(name)+'</div><div class="am">'+esc(size)+'</div></div></div>';
 }
@@ -165,28 +164,10 @@ function setPhase(roomId,p){
 }
 function phaseBadge(p){var bc=PHASE_BADGE[p]||'off';return '<span class="badge '+bc+'"><span class="dot"></span>'+esc(p)+'</span>';}
 
-/* ---------- 工具调用卡片 (chat.js runDeviceCommand + council.js 共用) ---------- */
+/* ---------- 工具调用卡片 ---------- */
 function toolNode(toolName,args,dur,outHtml){
   var d=document.createElement('div');d.className='msg wide';
   d.innerHTML='<div class="toolcall"><div class="th"><span>▸</span><b>'+esc(toolName)+'</b><span>'+esc(args)+'</span><span class="dur">'+esc(dur)+'</span><span class="car">▶</span></div><div class="tb"><pre>'+outHtml+'</pre></div></div>';
   d.querySelector('.th').addEventListener('click',function(){d.querySelector('.toolcall').classList.toggle('open');});
-  return d;
-}
-
-/* ---------- S7: 文件卡片 (讨论区文件引用) ---------- */
-function mkFileCard(fileName,filePath,size,author,roomId){
-  var ext=fileName.split('.').pop().toUpperCase().slice(0,4);
-  var d=document.createElement('div');d.className='msg wide';
-  d.innerHTML='<div class="file-card">'
-    +'<div class="fc-icon">'+esc(ext||'F')+'</div>'
-    +'<div class="fc-info"><div class="fc-name">'+esc(fileName)+'</div>'
-    +'<div class="fc-meta">'+esc(size)+' · '+esc(author)+'</div></div>'
-    +'<div class="fc-actions"><span class="fc-btn" data-action="view">'+t('files.view')+'</span></div></div>';
-  d.querySelector('[data-action="view"]').addEventListener('click',function(){
-    var res=B.readFile(roomId,filePath);
-    if(res.ok){showFilePreview(fileName,res.content);}
-    else{B.toast(res.error||'');}
-  });
-  d._md={t:'file',h:d.querySelector('.file-card').outerHTML,name:fileName};
   return d;
 }

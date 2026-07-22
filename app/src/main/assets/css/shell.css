@@ -53,18 +53,6 @@ button,input,textarea{font-family:inherit;}
 .bighead .ico-btn{min-width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:rgba(120,120,128,.12);font-family:var(--font-mono);font-size:13px;color:var(--ink-2);cursor:pointer;transition:all var(--t-fast);flex:none;border:none;margin-top:4px;}
 .bighead .ico-btn:active{background:rgba(120,120,128,.24);}
 
-/* ---------- 健康总结条 (mockup health) ---------- */
-.health{margin:12px 16px 6px;border-radius:var(--r-lg);padding:13px 16px;display:flex;align-items:center;gap:11px;transition:background .3s ease;}
-.health.ok{background:#E9F7EE;}
-.health.bad{background:#FDECEE;}
-.health .hd{width:10px;height:10px;border-radius:50%;flex:none;}
-.health.ok .hd{background:var(--ok-dot);animation:nodepulse 2s infinite;}
-.health.bad .hd{background:var(--err-dot);animation:nodepulse 1s infinite;}
-.health b{font-family:var(--font-sans);font-size:14.5px;font-weight:700;letter-spacing:-.01em;}
-.health.ok b{color:var(--ok);}
-.health.bad b{color:var(--err);}
-.health .hs{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-3);margin-top:1px;}
-
 /* ---------- 房间分组 (Apple grouped list) ---------- */
 .glabel{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;color:var(--ink-4);text-transform:uppercase;padding:14px 20px 6px;font-weight:600;}
 .glist{margin:0 16px 6px;background:var(--panel);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1);}
@@ -102,11 +90,6 @@ button,input,textarea{font-family:inherit;}
 .badge.err .dot{background:var(--err-dot);}
 .badge.aw{background:var(--code-bg);color:#E5E5EA;}
 .badge.aw .dot{background:var(--acc-live);animation:nodepulse 1.2s infinite;}
-.meter{width:100%;}
-.meter .lab{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:var(--fs-10);color:var(--ink-3);margin-bottom:4px;}
-.meter .bar{height:5px;background:var(--line-soft);border-radius:3px;overflow:hidden;}
-.meter .bar i{display:block;height:100%;border-radius:3px;background:var(--acc-live);width:0;transition:width 1.2s var(--spring);}
-.meter.hot .bar i{background:var(--err-dot);}
 /* 工具调用: 金边 + 深色详情 (Mono 数据层) */
 .toolcall{border-radius:var(--r-md);overflow:hidden;width:100%;background:var(--panel);box-shadow:var(--sh-1);border-left:3px solid var(--acc-live);}
 .toolcall .th{display:flex;align-items:center;gap:var(--s2);padding:8px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;transition:background var(--t-fast);}
@@ -241,24 +224,10 @@ button,input,textarea{font-family:inherit;}
 .sheet .sh-sub{font-family:var(--font-sans);font-size:11.5px;color:var(--ink-3);margin-bottom:12px;}
 .sheet input{width:100%;border:1px solid var(--line);border-radius:var(--r-md);padding:10px 12px;font-family:var(--font-sans);font-size:13px;outline:none;background:var(--panel);transition:all var(--t-fast);}
 .sheet input:focus{border-color:var(--acc-live);box-shadow:0 0 0 3.5px rgba(224,134,0,.14);}
-/* 协作方式选项卡03: 选中 = 2px 金环 + 浅金底 */
-.mode-opts{display:flex;flex-direction:column;gap:9px;margin:12px 0;}
-.mopt{border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;transition:all var(--t-fast);background:var(--panel);}
-.mopt:active{transform:scale(.98);}
-.mopt.sel{border:2px solid var(--acc-live);background:var(--acc-tint-2);}
-.mopt b{font-family:var(--font-sans);font-size:13px;font-weight:650;display:block;}
-.mopt span{font-family:var(--font-sans);font-size:11px;color:var(--ink-3);display:block;margin-top:3px;line-height:1.5;}
-.mopt-detail{font-family:var(--font-mono);font-size:9.5px;color:var(--acc-strong);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);line-height:1.5;}
 .sh-label{font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--ink-2);margin:10px 0 4px;}
 .sh-hint{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-4);text-align:center;margin-bottom:10px;}
 /* 底部按钮条: sticky 防键盘遮挡 (E1) */
 .step-foot{position:sticky;bottom:0;background:var(--panel);padding:6px 0 0;margin:0 -4px;display:flex;gap:8px;border-top:1px solid var(--line-soft);}
-/* 模型列表收折: max-height 过渡防视觉跳跃 (E2) */
-.mpick-wrap{max-height:0;overflow:hidden;transition:max-height .35s var(--spring);}
-.mpick-wrap.open{max-height:500px;overflow-y:auto;}
-.mpick-wrap .mpick{margin-top:6px;}
-.mpick-empty{padding:18px;text-align:center;font-family:var(--font-sans);font-size:12px;color:var(--ink-4);line-height:1.8;}
-
 /* ---------- 自动化 / 运行时 ---------- */
 .auto-input{margin:12px 16px;display:flex;gap:8px;}
 .auto-input .field{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:9px 14px;font-family:var(--font-sans);font-size:12px;color:var(--ink-1);transition:all var(--t-fast);min-width:0;box-shadow:var(--sh-1);}
@@ -330,13 +299,6 @@ button,input,textarea{font-family:inherit;}
 .rd-st.bad{color:var(--err);}
 .rd-hint{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-4);text-align:center;margin-top:12px;}
 .rd-empty{padding:24px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--ink-4);}
-.chan-grid{margin:0 16px 12px;display:grid;grid-template-columns:1fr 1fr;gap:7px;}
-.chan{background:var(--panel);border-radius:var(--r-md);padding:10px 13px;display:flex;align-items:center;gap:8px;transition:all var(--t-fast);cursor:pointer;box-shadow:var(--sh-1);}
-.chan:active{transform:scale(.98);}
-.chan .nm{font-family:var(--font-sans);font-size:11.5px;font-weight:600;color:var(--ink-2);}
-.chan .st{margin-left:auto;width:8px;height:8px;border-radius:50%;}
-.chan .st.on{background:var(--ok-dot);animation:nodepulse 1.8s infinite;}
-.chan .st.off{background:var(--line);}
 /* 模型行07: 选中 = 2px 金环 + 浅金底 + radio */
 .model-row{margin:0 16px 7px;background:var(--panel);border-radius:var(--r-md);padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all var(--t-fast);border:1.5px solid transparent;box-shadow:var(--sh-1);}
 .model-row:active{transform:scale(.99);}
@@ -355,22 +317,6 @@ button,input,textarea{font-family:inherit;}
 .model-none{margin:0 16px 8px;padding:18px;text-align:center;font-size:12px;color:var(--ink-4);}
 .model-add{border:1.5px dashed var(--line);background:transparent;box-shadow:none;justify-content:center;}
 .model-add .md{color:var(--acc-live);font-weight:600;}
-/* 多模型勾选 (新建房间第二步) */
-.mpick{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--panel-2);border-radius:var(--r-md);border:1.5px solid transparent;cursor:pointer;transition:all var(--t-fast);}
-.mpick:active{transform:scale(.99);}
-.mpick.sel{border-color:var(--acc-live);background:var(--acc-tint-2);}
-.mpick .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:700;color:#fff;flex:none;font-style:normal;}
-.mpick-info{flex:1;min-width:0;}
-.mpick-info b{display:block;font-size:13px;font-weight:650;letter-spacing:-.01em;}
-.mpick-info span{display:block;font-size:10.5px;color:var(--ink-4);margin-top:1px;}
-.mcheck{width:20px;height:20px;border-radius:50%;border:1.6px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--acc-live);flex:none;transition:all var(--t-fast);}
-.mpick.sel .mcheck{border-color:var(--acc-live);background:var(--acc-tint-2);}
-.mpick-hint{font-size:10.5px;color:var(--ink-4);text-align:center;padding:4px 0 8px;}
-.loop-banner{margin:0 16px 8px;padding:10px 14px;border:1px dashed #F2DFC2;background:var(--acc-tint-2);border-radius:var(--r-lg);font-size:11px;line-height:1.5;color:var(--acc-strong);}
-.loop-banner b{font-family:var(--font-mono);}
-.loop-chain{display:flex;align-items:center;gap:4px;margin-top:6px;font-family:var(--font-mono);font-size:9px;flex-wrap:wrap;}
-.loop-chain i{font-style:normal;background:var(--panel);border:1px solid #F2DFC2;padding:2px 7px;border-radius:99px;}
-.loop-chain em{font-style:normal;color:var(--acc-live);}
 .skill{margin:0 16px 8px;background:var(--panel);border-radius:var(--r-lg);padding:12px 14px;cursor:pointer;transition:all var(--t-fast);box-shadow:var(--sh-1);}
 .skill:active{transform:scale(.99);}
 .skill .r1{display:flex;align-items:center;gap:8px;}
@@ -379,32 +325,7 @@ button,input,textarea{font-family:inherit;}
 .skill p{font-family:var(--font-sans);font-size:11.5px;color:var(--ink-3);line-height:1.55;margin-top:6px;}
 .skill .r3{display:flex;gap:10px;margin-top:8px;font-family:var(--font-mono);font-size:9px;color:var(--ink-4);}
 .skill .r3 b{color:var(--acc-strong);font-weight:600;}
-.perm-grid{margin:0 16px 14px;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
-.perm-scroll{margin:2px 16px 4px;display:flex;gap:7px;overflow-x:auto;padding-bottom:5px;scrollbar-width:none;}
-.perm-scroll::-webkit-scrollbar{display:none;}
-.perm{min-width:56px;height:56px;flex:none;background:var(--panel);border-radius:var(--r-md);display:grid;place-items:center;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--ink-3);cursor:pointer;transition:all var(--t-fast);position:relative;box-shadow:var(--sh-1);}
-.perm:active{transform:scale(.95);}
-.perm::after{content:'';position:absolute;top:6px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--ok-dot);}
-.perm.denied{color:var(--ink-4);}
-.perm.denied::after{background:var(--err-dot);}
-
 /* ---------- 交互增强: sheet 行 / 长按操作条 ---------- */
-/* 新建房间 sheet 层级高于房间操作 sheet, 防止叠显 */
-#sheetMask{z-index:11;}
-#sheetNew{z-index:12;}
-.sheet-close{font-family:var(--font-sans);font-size:14px;color:var(--ink-3);cursor:pointer;padding:4px 8px;transition:color var(--t-fast);}
-.sheet-close:active{color:var(--ink-1);}
-.sheet-row{font-family:var(--font-sans);font-size:13px;font-weight:600;padding:13px 4px;border-bottom:1px solid var(--line-soft);cursor:pointer;transition:color var(--t-fast);color:var(--ink-1);}
-.sheet-row:last-child{border-bottom:none;}
-.sheet-row:active{color:var(--acc);}
-.sheet-row.danger{color:var(--err);}
-/* 长按操作条06: 黑底 · 16px 圆角 */
-.msg-actions{position:absolute;left:12px;right:12px;bottom:calc(var(--bnav-h) + 12px);background:var(--ink-1);color:#fff;border-radius:16px;padding:13px 18px;font-family:var(--font-sans);font-size:12.5px;font-weight:600;text-align:center;cursor:pointer;box-shadow:var(--sh-3);z-index:20;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s var(--spring);}
-.msg-actions.show{opacity:1;visibility:visible;transform:none;}
-.msg-actions:active{transform:scale(.98);}
-.msg.longpress-hl .bubble{box-shadow:0 0 0 2px var(--acc-live);}
-.skill.longpress-hl{box-shadow:0 0 0 2px var(--acc-live);}
-
 /* ---------- 房间内子 tab · iOS segmented ---------- */
 .room-tabs{flex:none;display:flex;margin:10px 16px 2px;background:rgba(120,120,128,.12);border-radius:10px;padding:2.5px;gap:2px;}
 .room-tab{flex:1;text-align:center;font-family:var(--font-sans);font-size:12px;font-weight:600;color:var(--ink-3);padding:5.5px 0;border-radius:8px;cursor:pointer;transition:all var(--t-fast);}
@@ -480,6 +401,5 @@ button,input,textarea{font-family:inherit;}
 /* 居中弹窗 */
 .dialog-mask{display:none;position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:99;}
 .dialog-mask.open{display:flex;align-items:center;justify-content:center;opacity:1;visibility:visible;transition:opacity .2s ease;}
-.dialog{background:var(--panel);border-radius:16px;padding:20px;width:calc(100% - 48px);max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
 .dialog{background:var(--panel);border-radius:16px;padding:20px;width:calc(100% - 48px);max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);transform:scale(.92);transition:transform .25s var(--spring, cubic-bezier(.22,1,.36,1));}
 .dialog-mask.open .dialog{transform:scale(1);}

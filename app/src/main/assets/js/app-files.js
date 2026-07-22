@@ -15,7 +15,6 @@ function setSubtab(tab){
   $('fileView').style.display=(tab==='files')?'':'none';
   $('fileFabAdd').style.display=(tab==='files')?'':'none';
   if(tab==='files'&&curRoomId){
-    _filesPath='';
     renderStorageView();
   }
 }

@@ -66,7 +66,6 @@ function roomAiNames(r){
   });
 }
 var PHASE_BADGE={'讨论中':'run','收敛中':'run','待确认':'aw','执行中':'run','已交付':'ok','已归档':'off','待评审':'run'};
-var ATT={img:{n:'seat-ref.png',m:'1170×2532 · 428KB',ic:'<span class="thumb"></span>'},file:{n:'PRD-v1.md',m:'Markdown · 3.2KB',ic:'<span class="fic">MD</span>'}};
 
 var curTab='chat', curRoomId=null, pending=[], trayOpen=false;
 var genCounter=0; /* 房间切换守卫 (HANDOFF §5) */

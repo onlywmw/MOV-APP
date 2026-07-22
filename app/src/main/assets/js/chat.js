@@ -25,8 +25,7 @@ function enterRoom(id){
   (r.msgs||[]).forEach(function(n){b.appendChild(n);});
   b.scrollTop=b.scrollHeight;
   bindAllMsgLongPress(id);
-  /* Fix 3: 重置文件浏览路径 + 子 tab 回讨论 */
-  _filesPath='';
+  /* Fix 3: 子 tab 回讨论 */
   if(typeof setSubtab==='function')setSubtab('chat');
   pending=[];renderPend();closeTray();
   showView('view-room');setTab('chat');
@@ -103,7 +102,7 @@ function sendMsg(){
   var room=ROOMS.find(function(r){return r.id===curRoomId;});
   var gen=genCounter,id=curRoomId;
   push(id,mkMsg({t:'agent',who:'YOU',me:true,h:v,att:pending.length?pending[pending.length-1]:null}));
-  room.last=v||('[附件] '+(pending[0]&&ATT[pending[0]]?ATT[pending[0]].n:'文件'));room.time='现在';renderRooms();persistRooms();
+  room.last=v||('[附件] '+(pending[0]?attName(pending[0]):'文件'));room.time='现在';renderRooms();persistRooms();
   $('msgInput').value='';pending=[];renderPend();
   ev('发送消息'+(v?'':'(纯附件)'));
   if(!v)return;
@@ -160,28 +159,6 @@ function runCouncil(id,topic,gen){
   };
   /* 发起异步讨论 */
   B.councilAsync(topic,modelIds,function(resp){/* 旧回调不再触发, 流式走 _councilReply */});
-}
-
-/* ---------- 投票卡片 (结构化输出) ---------- */
-function renderCouncilVotes(id,votes){
-  var v=document.createElement('div');v.className='msg wide';
-  var vc=document.createElement('div');vc.className='vote-card';
-  var vh=document.createElement('div');vh.className='vh';vh.textContent='COUNCIL VOTE';
-  vc.appendChild(vh);
-  votes.forEach(function(row){
-    var vr=document.createElement('div');vr.className='vote-row';
-    var av=document.createElement('span');av.className='av';
-    var a=AV[row.model]||AV.mov;
-    av.style.background=a[1];av.textContent=(row.model||'?').slice(0,2).toUpperCase();
-    var nm=document.createElement('span');nm.className='nm';nm.textContent=row.model||'';
-    var op=document.createElement('span');op.style.color='var(--ink-3)';op.textContent=row.opinion||'';
-    var st=document.createElement('span');st.className='st';
-    var okc=document.createElement('span');okc.className='ok';okc.textContent='✓';st.appendChild(okc);
-    vr.appendChild(av);vr.appendChild(nm);vr.appendChild(op);vr.appendChild(st);
-    vc.appendChild(vr);
-  });
-  v.appendChild(vc);
-  push(id,v);
 }
 
 /* ---------- 执行计划卡片 (审批 → 执行 → 交付) ---------- */

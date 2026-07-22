@@ -144,19 +144,6 @@ public class ModelRegistry {
         }
     }
 
-    /** 完整 JSON (含 apiKey, 仅内部用) */
-    public String listJsonFull() {
-        try {
-            JSONArray arr = new JSONArray();
-            for (ModelConfig m : models) {
-                arr.put(m.toJson(false));
-            }
-            return arr.toString();
-        } catch (Exception e) {
-            return "[]";
-        }
-    }
-
     /** 加密存储是否可用 (降级明文时弹警告) */
     public boolean isEncrypted() { return encrypted; }
 

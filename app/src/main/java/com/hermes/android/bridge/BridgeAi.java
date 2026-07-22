@@ -1,7 +1,6 @@
 package com.hermes.android.bridge;
 
 import com.hermes.android.HermesActivity;
-import com.hermes.android.StatsCollector;
 import com.hermes.android.ai.AiClient;
 import com.hermes.android.ai.AiProviderConfig;
 import com.hermes.android.council.CouncilClient;
@@ -23,7 +22,6 @@ public class BridgeAi extends BaseBridge {
     private final ModelRegistry modelRegistry;
     private final ExecutorService aiExecutor;
     private final List<AiClient.Message> chatHistory;
-    private final StatsCollector statsCollector;
     private static final int MAX_HISTORY = 10;
 
     public BridgeAi(HermesActivity activity) {
@@ -32,7 +30,6 @@ public class BridgeAi extends BaseBridge {
         this.modelRegistry = activity.getModelRegistry();
         this.aiExecutor = activity.getAiExecutor();
         this.chatHistory = activity.getChatHistory();
-        this.statsCollector = activity.getStatsCollector();
     }
 
     public void aiChatAsync(String text, String callbackId) {
@@ -57,13 +54,7 @@ public class BridgeAi extends BaseBridge {
                     synchronized (chatHistory) {
                         history = new ArrayList<>(chatHistory);
                     }
-                    long aiT0 = System.currentTimeMillis();
                     AiClient.AiResponse resp = client.chat(text, history);
-                    long aiMs = System.currentTimeMillis() - aiT0;
-                    if (statsCollector != null) {
-                        statsCollector.recordAiCall(aiConfig.getProvider(),
-                                aiConfig.getModel(), aiMs, resp.success);
-                    }
                     if (resp.success) {
                         synchronized (chatHistory) {
                             chatHistory.add(new AiClient.Message("user", text));

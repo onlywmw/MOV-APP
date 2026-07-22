@@ -46,22 +46,22 @@ public class MigrationManager {
 
     /** v1: /sdcard/mov → getExternalFilesDir (StorageManager 已有迁移逻辑，这里只做标记) */
     private static void migrate_v1_storagePaths() {
-        // StorageManager.init() 内部已有 migrateIfNeeded()
-        // 此处仅标记版本，避免重复检查
+        // 历史空迁移：实际迁移由 StorageManager.migrateIfNeeded() 完成，
+        // 此方法仅占位推进 data_version，勿删（影响存量用户版本判断）
         Log.i(TAG, "v1: storage path migration handled by StorageManager");
     }
 
     /** v2: 旧房间 members 数组 → 新 {human, ai} 格式 (JS 层 roomAiMembers 已兼容，此处仅标记) */
     private static void migrate_v2_roomMembers() {
-        // JS 层 roomAiMembers() 已兼容旧数组格式
-        // 此处仅标记版本
+        // 历史空迁移：兼容逻辑在 JS 层 roomAiMembers()，
+        // 此方法仅占位推进 data_version，勿删（影响存量用户版本判断）
         Log.i(TAG, "v2: room members format migration handled by JS compat layer");
     }
 
     /** v3: localStorage msgData → 文件按天存储 (JS 层已实现 appendChatMessage，此处仅标记) */
     private static void migrate_v3_msgDataToFiles() {
-        // JS 层 B.appendChat / B.loadChat 已实现文件存储
-        // 此处仅标记版本
+        // 历史空迁移：文件存储由 JS 层 B.appendChat / B.loadChat 实现，
+        // 此方法仅占位推进 data_version，勿删（影响存量用户版本判断）
         Log.i(TAG, "v3: msgData to files migration handled by JS storage layer");
     }
 }

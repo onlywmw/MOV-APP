@@ -14,31 +14,6 @@ function refreshRuntime(){
   ev('运行页数据已刷新');
 }
 
-/* ---------- 健康总结条 ---------- */
-function refreshHealth(){
-  var info=B.aiInfo();
-  var aiOn=info.enabled&&info.configured;
-  var chs=getChannelState();
-  var chOn=chs.filter(function(c){return c.on;}).length;
-  var jobs=B.listCron?B.listCron():[];
-  var failedJobs=jobs.filter(function(j){return j.lastStatus&&j.lastStatus.indexOf('FAIL')===0;}).length;
-  var problems=(aiOn?0:1)+failedJobs;
-  var card=$('healthCard');
-  if(problems===0){
-    card.className='health ok';
-    $('healthTitle').textContent=t('rt.healthOk');
-  }else{
-    card.className='health bad';
-    $('healthTitle').textContent=problems+' '+t('rt.healthBad');
-  }
-  var sub=t('rt.healthSub')
-    .replace('{a}',(aiOn?'1/1':'0/1'))
-    .replace('{b}',jobs.length+'')
-    .replace('{c}',chOn+'/'+chs.length);
-  if(failedJobs>0)sub+=' · '+failedJobs+' FAIL';
-  $('healthSub').textContent=sub;
-}
-
 /* ---------- PROCESS (DESIGN_OPTIMIZE §1: 精简 + 个人信息) ---------- */
 function refreshProcess(){
   var s=B.runtimeStats();
@@ -75,7 +50,7 @@ function renderPersonalRow(){
     avatar.textContent='●';
   }
   var name=$('prName');
-  if(name)name.textContent='王墨微 · 本地用户';
+  if(name)name.textContent='本地用户';
 }
 
 function formatUptime(ms){

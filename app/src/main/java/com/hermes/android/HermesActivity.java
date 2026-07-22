@@ -59,30 +59,22 @@ public class HermesActivity extends AppCompatActivity {
 
     private static final String TAG = "MOV";
     private static final int PERM_REQUEST = 1001;
-    private static final int MAX_HISTORY = 10;
     private static final String HISTORY_KEY = "chat_history_json";
     /** P0: 文件选择器拷贝上限 (与 BridgeValidator 5MB 一致) */
     private static final long MAX_COPY_BYTES = 5L * 1024 * 1024;
 
     private WebView shell;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
-    private final IntentParser parser = new IntentParser();
     private final CapabilityExecutor capabilityExecutor = new CapabilityExecutor();
     private AiProviderConfig aiConfig;
     private CronManager cronManager;
     private SkillStore skillStore;
-    private StatsCollector statsCollector;
     private com.hermes.android.model.ModelRegistry modelRegistry;
     private StorageManager storageManager;
     private final List<AiClient.Message> chatHistory = new ArrayList<>();
 
     /** P0-1: 后台线程池 (AI / Council 异步调用) */
     private final ExecutorService aiExecutor = Executors.newFixedThreadPool(2);
-
-    /** P2-14: 设备信息缓存 (5s TTL) */
-    private volatile String deviceInfoCache;
-    private volatile long deviceInfoCacheTime;
-    private static final long DEVICE_CACHE_TTL = 5000;
 
     /** JS 侧当前是否打开某个房间 */
     private volatile boolean roomOpen = false;
@@ -107,15 +99,11 @@ public class HermesActivity extends AppCompatActivity {
         capabilityExecutor.init(this);
         cronManager = new CronManager(this);
         skillStore = new SkillStore(this);
-        statsCollector = new StatsCollector(this);
-        statsCollector.onSessionStart();
-        statsCollector.tryReport();
 
-        // TELEMETRY: 全局未捕获异常 → 记录崩溃
+        // 全局未捕获异常 → 交还默认处理器
         final Thread.UncaughtExceptionHandler defaultHandler =
                 Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
-            try { statsCollector.recordCrash(); } catch (Exception ignored) {}
             if (defaultHandler != null) defaultHandler.uncaughtException(thread, ex);
         });
 
@@ -197,8 +185,6 @@ public class HermesActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        // TELEMETRY: 会话结束
-        if (statsCollector != null) statsCollector.onSessionEnd();
         // P0-3: 释放 TTS
         capabilityExecutor.shutdown();
         // P0-1: 关闭线程池
@@ -394,7 +380,6 @@ public class HermesActivity extends AppCompatActivity {
     public com.hermes.android.model.ModelRegistry getModelRegistry() { return modelRegistry; }
     public ExecutorService getAiExecutor() { return aiExecutor; }
     public List<AiClient.Message> getChatHistory() { return chatHistory; }
-    public StatsCollector getStatsCollector() { return statsCollector; }
     public StorageManager getStorageManager() { return storageManager; }
     public CronManager getCronManager() { return cronManager; }
     public SkillStore getSkillStore() { return skillStore; }

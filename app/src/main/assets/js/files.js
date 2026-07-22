@@ -2,7 +2,6 @@
    files.js — 房间文件 tab: 产出 / 资料 / 归档 / 模板 四视图
    存储系统 v3.0 — 五种存储, 五种体验
    ============================================================ */
-var _filesPath='';
 var _storageType='work'; /* work | inbox | archive | template */
 
 /* ---------- 子类型切换 ---------- */
@@ -158,7 +157,6 @@ function bindStorageCards(){
         :ftype==='archive'?'archive/'+fname
         :'templates/'+fname;
       if(ftype==='template'){
-        var res=B.readFile('__templates__',fname);
         /* 模板不在房间内, 用 listTemplates 读不到内容, 简化: 提示 */
         B.toast(t('st.templateHint'));
         return;

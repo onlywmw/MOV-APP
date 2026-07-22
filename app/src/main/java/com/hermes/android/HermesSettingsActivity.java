@@ -8,7 +8,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,7 +33,6 @@ public class HermesSettingsActivity extends AppCompatActivity {
 
     private ModelRegistry registry;
     private AiProviderConfig aiConfig;
-    private StatsCollector stats;
 
     private LinearLayout modelListContainer;
     private LinearLayout editForm;
@@ -52,7 +50,6 @@ public class HermesSettingsActivity extends AppCompatActivity {
 
         registry = new ModelRegistry(this);
         aiConfig = new AiProviderConfig(this);
-        stats = new StatsCollector(this);
 
         modelListContainer = findViewById(R.id.modelListContainer);
         editForm = findViewById(R.id.editForm);
@@ -83,18 +80,6 @@ public class HermesSettingsActivity extends AppCompatActivity {
                 aiConfig.setLanguage(LANG_VALUES[pos]);
             }
             public void onNothingSelected(android.widget.AdapterView<?> p) {}
-        });
-
-        // 统计
-        Switch switchStats = findViewById(R.id.switchStats);
-        switchStats.setChecked(stats.isEnabled());
-        switchStats.setOnCheckedChangeListener((v, checked) -> stats.setEnabled(checked));
-        findViewById(R.id.btnStatsPreview).setOnClickListener(v -> {
-            new android.app.AlertDialog.Builder(this)
-                    .setTitle("即将上报的数据")
-                    .setMessage(stats.getPreviewJson())
-                    .setPositiveButton("关闭", null)
-                    .show();
         });
 
         // 添加模型

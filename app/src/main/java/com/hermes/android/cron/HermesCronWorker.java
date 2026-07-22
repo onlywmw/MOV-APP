@@ -93,11 +93,6 @@ public class HermesCronWorker extends Worker {
 
             Log.i(TAG, "cron job " + jobId + " executed: " + status);
 
-            // TELEMETRY: Cron 执行计数
-            try {
-                new com.hermes.android.StatsCollector(ctx).recordCronExecuted();
-            } catch (Exception ignored) {}
-
             return Result.success();
 
         } catch (Exception e) {
