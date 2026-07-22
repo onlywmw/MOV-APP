@@ -441,8 +441,8 @@ button,input,textarea{font-family:inherit;}
 .st-info span{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--ink-4);}
 .st-ver{margin-left:auto;}
 /* 旧类名兼容 → 统一为 chip-btn 样式 */
-.st-ver,.ver-restore,.st-act-btn,.fc-btn{font-family:var(--font-mono);font-size:var(--fs-xs);font-weight:600;color:var(--acc-strong);cursor:pointer;height:28px;padding:0 var(--sp-3);border-radius:var(--r-sm);background:var(--acc-tint-2);border:1px solid var(--acc-line);transition:all var(--t-fast);display:inline-flex;align-items:center;flex:none;}
-.st-ver:active,.ver-restore:active,.st-act-btn:active,.fc-btn:active{background:var(--acc-tint);}
+.st-ver,.ver-restore,.fc-btn{font-family:var(--font-mono);font-size:var(--fs-xs);font-weight:600;color:var(--acc-strong);cursor:pointer;height:28px;padding:0 var(--sp-3);border-radius:var(--r-sm);background:var(--acc-tint-2);border:1px solid var(--acc-line);transition:all var(--t-fast);display:inline-flex;align-items:center;flex:none;}
+.st-ver:active,.ver-restore:active,.fc-btn:active{background:var(--acc-tint);}
 .st-summary{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--ink-4);text-align:center;padding:var(--sp-2) 0 var(--sp-3);}
 /* 资料网格 */
 .st-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-2);}
@@ -458,8 +458,6 @@ button,input,textarea{font-family:inherit;}
 .st-src-head b{font-family:var(--font-sans);font-size:var(--fs-base);font-weight:650;color:var(--ink-1);}
 .st-src-head span{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--ink-4);}
 .st-more{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--ink-4);padding:var(--sp-1) 0;text-align:center;}
-.st-actions{display:flex;gap:var(--sp-2);padding:var(--sp-3) 0;justify-content:center;}
-.st-act-btn{}
 /* 版本历史 · 行高固定 40px */
 .ver-current{font-family:var(--font-mono);font-size:var(--fs-sm);font-weight:700;margin-bottom:var(--sp-3);color:var(--acc-strong);}
 .ver-item{display:flex;align-items:center;gap:var(--sp-2);min-height:var(--h-md);padding:var(--sp-2) 0;border-bottom:1px solid var(--line-soft);font-family:var(--font-mono);font-size:var(--fs-xs);}

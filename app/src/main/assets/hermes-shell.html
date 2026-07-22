@@ -38,13 +38,12 @@
         <span class="room-tab" data-subtab="files" data-i18n="room.tabFiles">文件</span>
       </div>
       <div class="sbody" id="chatPane"><div class="chat-body" id="chatBody"></div></div>
-      <!-- 文件视图 (存储系统 v3.0: 产出/资料/归档/模板) -->
+      <!-- 文件视图 (存储系统 v3.0: 产出/资料/归档) -->
       <div class="file-view" id="fileView" style="display:none">
         <div class="storage-tabs" id="storageTabs">
           <span class="storage-tab on" data-stype="work" data-i18n="st.work">产出</span>
           <span class="storage-tab" data-stype="inbox" data-i18n="st.inbox">资料</span>
           <span class="storage-tab" data-stype="archive" data-i18n="st.archive">归档</span>
-          <span class="storage-tab" data-stype="template" data-i18n="st.template">模板</span>
         </div>
         <div class="storage-list" id="storageList"></div>
       </div>
@@ -77,14 +76,6 @@
           <span class="sheet-close" id="versionClose">✕</span>
         </div>
         <div class="preview-body" id="versionBody"></div>
-      </div>
-      <!-- 新建模板 sheet -->
-      <div class="sheet-mask" id="templateMask" style="z-index:31"></div>
-      <div class="sheet" id="templateSheet" style="z-index:32">
-        <div style="display:flex;align-items:center;justify-content:space-between"><h5 data-i18n="st.newTemplate">新建模板</h5><span class="sheet-close" id="btnTemplateClose">✕</span></div>
-        <input id="templateName" data-i18n-ph="st.templateName" placeholder="模板名 · 如: PRD模板.md" style="width:100%;border:1px solid var(--line);border-radius:var(--r-md);padding:10px 12px;font-family:var(--font-mono);font-size:12px;outline:none;background:var(--panel-2);margin:8px 0">
-        <textarea id="templateContent" data-i18n-ph="st.templateContent" placeholder="模板内容" style="width:100%;height:120px;margin:0 0 8px;border:1px solid var(--line);border-radius:var(--r-md);padding:10px;font-family:var(--font-mono);font-size:12px;resize:vertical;outline:none;background:var(--panel-2)"></textarea>
-        <button class="btn btn-acc" id="btnTemplateOk" style="width:100%;justify-content:center" data-i18n="st.templateSave">保存模板</button>
       </div>
       <!-- Fix 5: 新建文件 sheet -->
       <div class="sheet-mask" id="fileNewMask" style="z-index:31"></div>

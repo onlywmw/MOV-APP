@@ -76,7 +76,7 @@ When: 搜索 "login"
 Then:
   1. 返回所有匹配文件 (跨房间)
   2. 每个结果含 roomId, path, type, author
-  3. 不返回 inbox/archive/template 类型的文件 (只搜 work)
+  3. 不返回 inbox/archive 类型的文件 (只搜 work)
 ```
 
 ### TC-S07：写入超大内容被拒绝

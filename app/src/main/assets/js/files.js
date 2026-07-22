@@ -1,8 +1,8 @@
 /* ============================================================
-   files.js — 房间文件 tab: 产出 / 资料 / 归档 / 模板 四视图
-   存储系统 v3.0 — 五种存储, 五种体验
+   files.js — 房间文件 tab: 产出 / 资料 / 归档 三视图
+   存储系统 v3.0 (模板功能已下线)
    ============================================================ */
-var _storageType='work'; /* work | inbox | archive | template */
+var _storageType='work'; /* work | inbox | archive */
 
 /* ---------- 子类型切换 ---------- */
 function setStorageType(type){
@@ -17,7 +17,6 @@ function renderStorageView(){
   if(_storageType==='work')renderWorkFiles();
   else if(_storageType==='inbox')renderInboxFiles();
   else if(_storageType==='archive')renderArchiveFiles();
-  else if(_storageType==='template')renderTemplateFiles();
 }
 
 /* ---------- 产出视图: 按时间分组 ---------- */
@@ -108,32 +107,6 @@ function renderArchiveFiles(){
   bindStorageCards();
 }
 
-/* ---------- 模板视图 ---------- */
-function renderTemplateFiles(){
-  var res=B.listTemplates();
-  var files=(res.files||[]).filter(function(f){return !f.isDir;});
-  var h='';
-  if(files.length===0){
-    h='<div class="sysline">'+t('st.templateEmpty')+'</div>';
-  }else{
-    files.forEach(function(f){
-      h+='<div class="st-card" data-file="'+esc(f.name)+'" data-type="template">'
-        +'<span class="fic">TP</span>'
-        +'<div class="st-info"><b>'+esc(f.name)+'</b>'
-        +'<span>'+formatFileSize(f.size)+' · '+timeAgo(f.modified)+'</span></div>'
-        +'<span class="st-ver" data-act="use">'+t('st.use')+'</span>'
-        +'</div>';
-    });
-  }
-  h+='<div class="st-actions">'
-    +'<span class="st-act-btn" id="btnNewTemplate">'+t('st.newTemplate')+'</span>'
-    +'</div>';
-  $('storageList').innerHTML=h;
-  bindStorageCards();
-  var btn=$('btnNewTemplate');
-  if(btn)btn.addEventListener('click',function(){openTemplateSheet();});
-}
-
 /* ---------- 卡片事件绑定 ---------- */
 function bindStorageCards(){
   document.querySelectorAll('#storageList .st-card, #storageList .st-gcard').forEach(function(el){
@@ -146,21 +119,10 @@ function bindStorageCards(){
         openVersionOverlay(fname);
         return;
       }
-      /* 点使用模板 */
-      if(event.target.getAttribute('data-act')==='use'){
-        useTemplateAction(fname);
-        return;
-      }
-      /* 预览文件 (Fix: 补 files/ 前缀 — 磁盘布局为 rooms/<id>/files/<type>/, 此前预览必报"文件不存在") */
+      /* 预览文件 (Fix: 补 files/ 前缀 — 磁盘布局为 rooms/<id>/files/<type>/) */
       var path=ftype==='work'?'files/work/'+fname
         :ftype==='inbox'?'files/inbox/'+fname
-        :ftype==='archive'?'files/archive/'+fname
-        :'templates/'+fname;
-      if(ftype==='template'){
-        /* 模板不在房间内, 用 listTemplates 读不到内容, 简化: 提示 */
-        B.toast(t('st.templateHint'));
-        return;
-      }
+        :'files/archive/'+fname;
       var res2=B.readFile(curRoomId,path);
       if(res2.ok)showFilePreview(fname,res2.content);
       else B.toast(res2.error||t('files.loadFail'));
@@ -213,35 +175,6 @@ function openVersionOverlay(fname){
 function closeVersionOverlay(){
   $('versionMask').style.display='none';
   $('versionOverlay').style.display='none';
-}
-
-/* ---------- 使用模板 ---------- */
-function useTemplateAction(tname){
-  var target=prompt(t('st.templateTarget'),tname.replace('.md','')+'-copy.md');
-  if(!target)return;
-  var r=B.useTemplate(tname,curRoomId,target);
-  if(r.ok){B.toast(r.message||t('st.templateUsed'));setStorageType('work');}
-  else B.toast(r.error||'');
-}
-
-/* ---------- 新建模板 sheet ---------- */
-function openTemplateSheet(){
-  openSheetExclusive('templateMask','templateSheet');
-  $('templateName').value='';
-  $('templateContent').value='';
-  $('templateName').focus();
-}
-function closeTemplateSheet(){
-  $('templateMask').classList.remove('open');
-  $('templateSheet').classList.remove('open');
-}
-function confirmTemplate(){
-  var name=$('templateName').value.trim();
-  if(!name){B.toast(t('st.templateNeedName'));return;}
-  var content=$('templateContent').value;
-  var r=B.saveTemplate(name,content);
-  if(r.ok){closeTemplateSheet();B.toast(name+' '+t('files.created'));renderTemplateFiles();}
-  else B.toast(r.error||'');
 }
 
 /* ---------- 文件预览 overlay (复用) ---------- */

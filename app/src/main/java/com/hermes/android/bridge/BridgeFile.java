@@ -76,18 +76,6 @@ public class BridgeFile extends BaseBridge {
         String e = BridgeValidator.checkRoomId(roomId); if (e != null) return e;
         return sm.getRoomMeta(roomId);
     }
-    public String listTemplates() { return sm.listTemplates(); }
-    public String saveTemplate(String name, String content) {
-        String e = BridgeValidator.checkPath(name); if (e != null) return e;
-        e = BridgeValidator.checkContent(content); if (e != null) return e;
-        return sm.saveTemplate(name, content);
-    }
-    public String useTemplate(String templateName, String roomId, String targetName) {
-        String e = BridgeValidator.checkPath(templateName); if (e != null) return e;
-        e = BridgeValidator.checkRoomId(roomId); if (e != null) return e;
-        e = BridgeValidator.checkPath(targetName); if (e != null) return e;
-        return sm.useTemplate(templateName, roomId, targetName);
-    }
     public String listNotes() { return sm.listNotes(); }
     public String saveNote(String name, String content) {
         String e = BridgeValidator.checkPath(name); if (e != null) return e;

@@ -38,11 +38,6 @@ $('previewMask').addEventListener('click',closeFilePreview);
 $('versionClose').addEventListener('click',closeVersionOverlay);
 $('versionMask').addEventListener('click',closeVersionOverlay);
 
-/* 存储系统: 模板 sheet */
-$('btnTemplateClose').addEventListener('click',closeTemplateSheet);
-$('templateMask').addEventListener('click',closeTemplateSheet);
-$('btnTemplateOk').addEventListener('click',confirmTemplate);
-
 /* 存储系统: 存储类型子 tab 切换 */
 document.querySelectorAll('.storage-tab').forEach(function(el){
   el.addEventListener('click',function(){setStorageType(el.getAttribute('data-stype'));});

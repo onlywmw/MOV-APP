@@ -61,9 +61,6 @@ public class BridgeFactory {
     @JavascriptInterface public String deleteArchiveFile(String roomId, String path) { return file.deleteArchiveFile(roomId, path); }
     @JavascriptInterface public String initRoomStorage(String roomId) { return file.initRoomStorage(roomId); }
     @JavascriptInterface public String getRoomMeta(String roomId) { return file.getRoomMeta(roomId); }
-    @JavascriptInterface public String listTemplates() { return file.listTemplates(); }
-    @JavascriptInterface public String saveTemplate(String name, String content) { return file.saveTemplate(name, content); }
-    @JavascriptInterface public String useTemplate(String templateName, String roomId, String targetName) { return file.useTemplate(templateName, roomId, targetName); }
     @JavascriptInterface public String listNotes() { return file.listNotes(); }
     @JavascriptInterface public String saveNote(String name, String content) { return file.saveNote(name, content); }
     @JavascriptInterface public String readNote(String name) { return file.readNote(name); }

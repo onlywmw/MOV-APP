@@ -25,8 +25,8 @@ import java.util.Locale;
  *     files/inbox/          资料 (只读)
  *     files/archive/        归档 (按来源分目录)
  *     files/.meta/index.json 元数据
- *   templates/              模板 (跨房间)
  *   personal/notes/         个人笔记
+ *   (templates/ 模板功能已下线, 旧目录残留无害)
  *
  * P0-1: /sdcard → Scoped Storage 迁移
  */
@@ -263,57 +263,6 @@ public class StorageManager {
             }
             return new JSONObject().put("ok", true)
                     .put("file", source + "/" + fileName).toString();
-        } catch (Exception e) {
-            return errJson(e);
-        }
-    }
-
-    // ==================== 模板 (templates) ====================
-
-    public String listTemplates() {
-        try {
-            File dir = new File(baseDir, "templates");
-            dir.mkdirs();
-            JSONArray arr = listDir(dir);
-            return new JSONObject().put("ok", true).put("files", arr).toString();
-        } catch (Exception e) {
-            return errJson(e);
-        }
-    }
-
-    public String saveTemplate(String name, String content) {
-        try {
-            File dir = new File(baseDir, "templates");
-            dir.mkdirs();
-            File target = new File(dir, name);
-            if (!isSafe(dir, target)) return errJson("路径越界");
-            try (FileWriter fw = new FileWriter(target)) {
-                fw.write(content);
-            }
-            return new JSONObject().put("ok", true).toString();
-        } catch (Exception e) {
-            return errJson(e);
-        }
-    }
-
-    public String useTemplate(String templateName, String roomId, String targetName) {
-        try {
-            if (!isValidId(roomId)) return errJson("非法房间ID");
-            File tplBase = new File(baseDir, "templates");
-            File src = new File(tplBase, templateName).getCanonicalFile();
-            if (!isSafe(tplBase, src)) return errJson("路径越界");
-            if (!src.exists()) return errJson("模板不存在");
-            String content = new String(Files.readAllBytes(src.toPath()), StandardCharsets.UTF_8);
-
-            File dir = new File(baseDir, "rooms/" + roomId + "/files/work");
-            dir.mkdirs();
-            File target = new File(dir, targetName);
-            if (!isSafe(dir, target)) return errJson("路径越界");
-            try (FileWriter fw = new FileWriter(target)) {
-                fw.write(content);
-            }
-            return new JSONObject().put("ok", true)
-                    .put("message", "已从模板创建: " + targetName).toString();
         } catch (Exception e) {
             return errJson(e);
         }
