@@ -244,11 +244,48 @@ function executeCouncilSteps(id,steps,gen){
       push(id,toolNode('exec',step,dur,esc(out)+'\n<span class="'+(ok?'ok-line':'err-line')+'">'+(ok?'exit 0':'exit 1')+'</span>'));
       setTimeout(next,300);
     }else if(step.action==='file.write'){
-      var res=B.saveWorkFile(id,step.args.path,step.args.content||'','mov');
-      var dur2=((Date.now()-t0)/1000).toFixed(2)+'s';
-      push(id,toolNode('file.write',step.args.path,dur2,esc(res.ok?('已写入 '+step.args.path):(res.error||'写入失败'))+'\n<span class="'+(res.ok?'ok-line':'err-line')+'">'+(res.ok?'exit 0':'exit 1')+'</span>'));
-      if(res.ok)produced.push(step.args.path);
-      setTimeout(next,300);
+          /* P1: AI 写文件前强制预览，用户确认才落盘 (CONTRACT_ARCH §5) */
+          var fpath=step.args.path||'untitled';
+          var fcontent=step.args.content||'';
+          var card=document.createElement('div');card.className='msg wide';
+          var wrap=document.createElement('div');wrap.className='deliver-card';
+          wrap.style.borderLeftColor='#F2DFC2';
+          var ic=document.createElement('span');ic.className='ic';ic.textContent='W';
+          var info=document.createElement('div');info.style.flex='1';info.style.minWidth='0';
+          var tt=document.createElement('div');tt.className='tt';tt.textContent=fpath;
+          var ss=document.createElement('div');ss.className='ss';
+          ss.textContent=fcontent.length+' 字符 · 待确认';
+          info.appendChild(tt);info.appendChild(ss);
+          var pre=document.createElement('pre');
+          pre.style.cssText='margin:8px 0 0;padding:8px;background:var(--code-bg);border-radius:8px;font-size:10px;line-height:1.6;max-height:120px;overflow:auto;white-space:pre-wrap;word-break:break-word;width:100%;';
+          pre.textContent=fcontent.length>2000?fcontent.slice(0,2000)+'\n…(截断预览)':fcontent;
+          var btnRow=document.createElement('div');
+          btnRow.style.cssText='display:flex;gap:8px;margin-top:8px;';
+          var bOk=document.createElement('button');bOk.className='btn btn-acc';bOk.textContent='确认写入';
+          var bSkip=document.createElement('button');bSkip.className='btn btn-ghost';bSkip.textContent='跳过';
+          btnRow.appendChild(bOk);btnRow.appendChild(bSkip);
+          wrap.appendChild(ic);wrap.appendChild(info);
+          card.appendChild(wrap);card.appendChild(pre);card.appendChild(btnRow);
+          push(id,card);
+          var settled=false;
+          function settle(action){
+            if(settled)return;settled=true;
+            bOk.disabled=true;bSkip.disabled=true;
+            var dur2=((Date.now()-t0)/1000).toFixed(2)+'s';
+            if(action==='write'){
+              var res=B.saveWorkFile(id,fpath,fcontent,'mov');
+              ss.textContent=fcontent.length+' 字符 · '+(res.ok?'已写入':'写入失败');
+              wrap.style.borderLeftColor=res.ok?'var(--ok-dot)':'#e55';
+              push(id,toolNode('file.write',fpath,dur2,esc(res.ok?('已写入 '+fpath):(res.error||'写入失败'))+'\n<span class="'+(res.ok?'ok-line':'err-line')+'">'+(res.ok?'exit 0':'exit 1')+'</span>'));
+              if(res.ok)produced.push(fpath);
+            }else{
+              ss.textContent=fcontent.length+' 字符 · 已跳过';
+              wrap.style.borderLeftColor='var(--ink-4)';
+            }
+            setTimeout(next,300);
+          }
+          bOk.addEventListener('click',function(){settle('write');});
+          bSkip.addEventListener('click',function(){settle('skip');});
     }else{
       /* 其他 action → 走设备指令通道 */
       var cmdText=step.action+(step.args&&step.args.text?' '+step.args.text:'');
