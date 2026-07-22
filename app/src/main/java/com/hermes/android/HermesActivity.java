@@ -159,7 +159,39 @@ public class HermesActivity extends AppCompatActivity {
                 return url == null || !url.startsWith("file:///android_asset/");
             }
         });
-        shell.setWebChromeClient(new WebChromeClient());
+        shell.setWebChromeClient(new WebChromeClient() {
+            /* Fix: WebView 默认不处理 confirm()/prompt() — confirm 恒返回 false、prompt 恒返回 null,
+               导致 Cron 删除确认、模板使用命名等流程静默失败。用原生对话框承接。 */
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message,
+                                       android.webkit.JsResult result) {
+                new androidx.appcompat.app.AlertDialog.Builder(HermesActivity.this)
+                        .setMessage(message)
+                        .setPositiveButton(android.R.string.ok, (d, w) -> result.confirm())
+                        .setNegativeButton(android.R.string.cancel, (d, w) -> result.cancel())
+                        .setOnCancelListener(d -> result.cancel())
+                        .show();
+                return true;
+            }
+
+            @Override
+            public boolean onJsPrompt(WebView view, String url, String message, String defaultValue,
+                                      android.webkit.JsPromptResult result) {
+                final android.widget.EditText input = new android.widget.EditText(HermesActivity.this);
+                input.setText(defaultValue);
+                int pad = (int) (16 * getResources().getDisplayMetrics().density);
+                input.setPadding(pad, 0, pad, 0);
+                new androidx.appcompat.app.AlertDialog.Builder(HermesActivity.this)
+                        .setMessage(message)
+                        .setView(input)
+                        .setPositiveButton(android.R.string.ok,
+                                (d, w) -> result.confirm(input.getText().toString()))
+                        .setNegativeButton(android.R.string.cancel, (d, w) -> result.cancel())
+                        .setOnCancelListener(d -> result.cancel())
+                        .show();
+                return true;
+            }
+        });
         shell.addJavascriptInterface(new com.hermes.android.bridge.BridgeFactory(this), "HermesBridge");
         shell.loadUrl("file:///android_asset/hermes-shell.html");
 

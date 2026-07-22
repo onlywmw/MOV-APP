@@ -47,7 +47,7 @@ var I18N={
     'rt.channels':'通道','rt.shell':'应用壳','rt.widget':'小组件',
     'rt.aiGateway':'AI 网关','rt.notify':'通知',
     'rt.cron':'定时任务','rt.cronCreate':'创建',
-    'rt.cronInput':'自然语言创建任务 · 如: 每天 8:30 汇总邮箱',
+    'rt.cronInput':'定时执行设备指令 · 如: 每天 8:30 打开手电筒',
     'rt.cronNone':'暂无任务 · 上方输入框创建',
     'rt.model':'模型','rt.nativeEngine':'原生引擎','rt.online':'在线',
     'rt.nativeDesc':'30+ 设备能力 · 免网络 · 永远在线',

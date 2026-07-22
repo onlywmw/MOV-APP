@@ -9,6 +9,10 @@ public class HermesApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // 仅 debuggable 包开启 WebView 远程调试 (chrome://inspect / CDP), release 关闭
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            android.webkit.WebView.setWebContentsDebuggingEnabled(true);
+        }
         MigrationManager.run(this);
         ensureDefaultsAndCleanup();
     }

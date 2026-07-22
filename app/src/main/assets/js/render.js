@@ -106,6 +106,8 @@ function push(roomId,node,data){
   }
   if(data){room.msgData=room.msgData||[];room.msgData.push(data);}
   if(curRoomId===roomId){var b=$('chatBody');b.appendChild(node);b.scrollTop=b.scrollHeight;}
+  /* Fix: 新消息也要绑长按删除 (此前只有 enterRoom 时统一绑, 动态 push 的消息漏绑) */
+  if(typeof bindMsgLongPress==='function')bindMsgLongPress(node,roomId);
   persistRooms();
 }
 function rebuildMsgs(r){

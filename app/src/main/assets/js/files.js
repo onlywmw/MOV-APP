@@ -151,10 +151,10 @@ function bindStorageCards(){
         useTemplateAction(fname);
         return;
       }
-      /* 预览文件 */
-      var path=ftype==='work'?'work/'+fname
-        :ftype==='inbox'?'inbox/'+fname
-        :ftype==='archive'?'archive/'+fname
+      /* 预览文件 (Fix: 补 files/ 前缀 — 磁盘布局为 rooms/<id>/files/<type>/, 此前预览必报"文件不存在") */
+      var path=ftype==='work'?'files/work/'+fname
+        :ftype==='inbox'?'files/inbox/'+fname
+        :ftype==='archive'?'files/archive/'+fname
         :'templates/'+fname;
       if(ftype==='template'){
         /* 模板不在房间内, 用 listTemplates 读不到内容, 简化: 提示 */
