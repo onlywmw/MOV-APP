@@ -4,13 +4,14 @@
    ============================================================ */
 
 /* ---------- 主刷新 ---------- */
+/* 步骤隔离: 任一区块抛错只降级该区块并上报 logcat, 不再拖垮整页 */
 function refreshRuntime(){
-  refreshProcess();
-  refreshChannels();
-  refreshModel();
-  renderPermissions();
-  renderCronJobs();
-  renderSkillPage();
+  var steps=[['process',refreshProcess],['channels',refreshChannels],['model',refreshModel],
+             ['perms',renderPermissions],['cron',renderCronJobs],['skills',renderSkillPage]];
+  for(var i=0;i<steps.length;i++){
+    try{steps[i][1]();}
+    catch(e){ev('运行页区块刷新失败 ['+steps[i][0]+']: '+(e&&e.message?e.message:e));}
+  }
   ev('运行页数据已刷新');
 }
 
@@ -142,13 +143,16 @@ function modelStatusDot(m){
   var ready=(m.apiKey&&m.apiKey.length>0)||(m.provider==='ollama');
   return '<span class="st '+(ready?'on':'off')+'"></span>';
 }
+/* 跨文件函数兜底: store.js 版本错位(旧缓存)时降级不炸页 */
+function _pvColor(p){return (typeof providerColor==='function')?providerColor(p):'#D97706';}
+function _pvName(p){return (typeof providerDisplayName==='function')?providerDisplayName(p):p;}
 function modelStatusText(m){
   if(!m.enabled)return t('model.disabled');
   var ready=(m.apiKey&&m.apiKey.length>0)||(m.provider==='ollama');
-  return ready?(m.model||providerDisplayName(m.provider)):t('model.noKey');
+  return ready?(m.model||_pvName(m.provider)):t('model.noKey');
 }
 function refreshModel(){
-  refreshModelAvatars(); /* 设置页改动后同步聊天头像色 */
+  if(typeof refreshModelAvatars==='function')refreshModelAvatars(); /* 设置页改动后同步聊天头像色 */
   var models=B.listModels();
   var mh='';
   /* 原生引擎: 永远在线, 置顶 */
@@ -158,7 +162,7 @@ function refreshModel(){
     var ready=(m.apiKey&&m.apiKey.length>0)||(m.provider==='ollama');
     var sel=m.isDefault?' sel':'';
     mh+='<div class="model-row'+sel+'" data-model="'+esc(m.id)+'">'
-      +'<i class="av" style="background:'+esc(m.color||providerColor(m.provider))+'">'+esc((m.name||'?').charAt(0))+'</i>'
+      +'<i class="av" style="background:'+esc(m.color||_pvColor(m.provider))+'">'+esc((m.name||'?').charAt(0))+'</i>'
       +'<div><div class="pv">'+esc(m.role||t('model.roleGeneral'))+(m.isDefault?' · '+t('model.default'):'')+'</div>'
       +'<div class="md">'+esc(m.name)+'</div>'
       +'<div class="ms">'+modelStatusDot(m)+'<span>'+esc(modelStatusText(m))+'</span></div></div>'

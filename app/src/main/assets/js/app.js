@@ -13,7 +13,7 @@ document.getElementById('btnBack').addEventListener('click',function(){
 /* ============ 初始化 ============ */
 initLang();
 applyI18n();
-refreshModelAvatars();
+if(typeof refreshModelAvatars==='function')refreshModelAvatars();
 renderRooms();
 setTab('chat');
 setTimeout(function(){refreshRuntime();},600);

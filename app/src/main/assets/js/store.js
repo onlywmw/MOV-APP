@@ -49,7 +49,8 @@ function providerColor(key){return PROVIDER_COLORS[key]||'#D97706';}
 var _presetsCache=null;
 function providerDisplayName(key){
   try{
-    if(!_presetsCache)_presetsCache=B.providerPresets();
+    /* 空结果不缓存: 桥未就绪时下次重试 */
+    if(!_presetsCache||!_presetsCache.length)_presetsCache=B.providerPresets();
     var p=(_presetsCache||[]).find(function(x){return x.key===key;});
     return p?p.displayName:key;
   }catch(e){return key;}

@@ -82,7 +82,9 @@ var B=(function(){
 
 /* ============ 全局错误边界 ============ */
 window.onerror=function(msg,url,line,col,err){
-  var info='SHELL ERROR: '+msg+' @ line '+line;
+  /* 可观测性: 输出 message/来源/行列/堆栈; file:// 跨源脱敏时 err 为 null, 至少保留 url:line:col */
+  var info='SHELL ERROR: '+msg+' @ '+(url||'?')+':'+line+':'+col;
+  if(err&&err.stack)info+='\n'+err.stack;
   try{if(window.HermesBridge)HermesBridge.log(info);}catch(e){}
   try{
     var b=document.getElementById('chatBody');

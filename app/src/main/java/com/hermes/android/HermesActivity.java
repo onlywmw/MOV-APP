@@ -148,6 +148,8 @@ public class HermesActivity extends AppCompatActivity {
         // (file:///android_asset 加载在 allowFileAccess=false 下仍可用)
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
+        // 防升级安装后 WebView 复用旧版 JS/CSS 缓存导致前后端文件版本错位 (assets 本地加载, 禁缓存无性能损失)
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         shell.setBackgroundColor(0xFFF6F6F7);
         // P0: URL 白名单，仅放行本地 assets
