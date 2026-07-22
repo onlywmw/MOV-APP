@@ -100,7 +100,7 @@ AI 成员
 | `js/chat.js` | `routeMessage` 单聊按房间模型路由（~10 行） |
 | `js/bridge.js` | B 封装加 `aiChatWithModel`（~4 行） |
 | `js/i18n.js` | 新增 key：模式名 / 成员 / 去添加 / 至少选一个 |
-| `css/shell.css` | segmented + 模型列表样式（~40 行） |
+| `css/shell.css` | 尽量复用 V4.0 已有类：`.mopt`/`.mode-opts`（模式选项卡）、`.mpick`/`.mpick-wrap`（模型勾选行）、`.chip-btn`；仅补 segmented 等缺失样式（<30 行） |
 | `BridgeAi.java` / `BridgeFactory.java` | 加 `aiChatWithModel`（~30 行） |
 | `docs/CONTRACT_ROOM.md` | 约束 1 改为 sheet；TC-R01/R02 重写；新增成员编辑 TC |
 
