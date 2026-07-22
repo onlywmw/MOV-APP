@@ -61,7 +61,10 @@ function renderRooms(){
   var councils=active.filter(function(r){return r.mode==='council';}).length;
   if($('roomsSub'))$('roomsSub').innerHTML='<b>'+active.length+'</b> '+t('rooms.projects')+' · <b>'+councils+'</b> '+t('rooms.councils');
   document.querySelectorAll('#roomList .room').forEach(function(el){
-    el.addEventListener('click',function(){enterRoom(el.getAttribute('data-room'));});
+    el.addEventListener('click',function(){
+      if(lpSuppressClick())return;
+      enterRoom(el.getAttribute('data-room'));
+    });
   });
   bindRoomListLongPress();
   $('ndChat').classList.toggle('show',ROOMS.some(function(r){return r.unread;}));

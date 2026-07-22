@@ -141,6 +141,7 @@ function bindStorageCards(){
     var fname=el.getAttribute('data-file');
     var ftype=el.getAttribute('data-type');
     el.addEventListener('click',function(){
+      if(lpSuppressClick())return;
       /* 点版本按钮 */
       if(event.target.getAttribute('data-act')==='versions'){
         openVersionOverlay(fname);

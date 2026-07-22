@@ -324,13 +324,17 @@ function renderDeliverCard(id,produced){
 var _lpTimer=null,_lpNode=null,_lpStartX=0,_lpStartY=0,_lpAction=null;
 
 function bindLongPress(node,action){
+  /* P1.5: 去重 — 节点跨 enterRoom 复用时避免重复绑监听 */
+  if(node._lpBound)return;
+  node._lpBound=true;
   node.addEventListener('touchstart',function(e){
     _lpStartX=e.touches[0].clientX;_lpStartY=e.touches[0].clientY;
     _lpNode=node;_lpAction=action;
     _lpTimer=setTimeout(function(){triggerLongPress();},500);
   },{passive:true});
   node.addEventListener('touchmove',function(e){
-    if(_lpTimer&&Math.abs(e.touches[0].clientX-_lpStartX)>10||Math.abs(e.touches[0].clientY-_lpStartY)>10){cancelLongPress();}
+    /* P1.5: 修复 &&/|| 优先级 — dy 判断也必须在 _lpTimer 守卫内 */
+    if(_lpTimer&&(Math.abs(e.touches[0].clientX-_lpStartX)>10||Math.abs(e.touches[0].clientY-_lpStartY)>10)){cancelLongPress();}
   },{passive:true});
   node.addEventListener('touchend',cancelLongPress,{passive:true});
   node.addEventListener('mousedown',function(e){
@@ -345,6 +349,8 @@ function cancelLongPress(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}}
 function triggerLongPress(){
   _lpTimer=null;
   if(!_lpNode||!_lpAction)return;
+  /* P1.5: 记录长按时间戳, click handler 300ms 内抑制, 防长按/click 双触发 */
+  window._lpFired=Date.now();
   _lpNode.classList.add('longpress-hl');
   showMsgActions(_lpAction.text,function(){
     _lpNode.classList.remove('longpress-hl');
@@ -352,6 +358,8 @@ function triggerLongPress(){
     _lpAction.exec();
   });
 }
+/* P1.5: click handler 首行调用, 长按后 300ms 内返回 true 应直接 return */
+function lpSuppressClick(){return window._lpFired&&(Date.now()-window._lpFired)<300;}
 function showMsgActions(text,onConfirm){
   var el=$('msgActions');
   $('msgActionText').textContent=text;
@@ -369,10 +377,16 @@ $('msgActions').addEventListener('click',function(){
 });
 
 /* ---------- 消息长按删除 ---------- */
-function bindMsgLongPress(node,roomId,idx){
+/* P1.5: 不再闭包捕获 idx — 删除一条后剩余节点 idx 过期会删错消息;
+   长按触发时按节点在 room.msgs 中的实时位置定位 */
+function bindMsgLongPress(node,roomId){
   bindLongPress(node,{
     text:t('msg.delete'),
-    exec:function(){deleteMessage(roomId,idx);}
+    exec:function(){
+      var room=ROOMS.find(function(r){return r.id===roomId;});
+      var idx=(room&&room.msgs)?room.msgs.indexOf(node):-1;
+      if(idx>=0)deleteMessage(roomId,idx);
+    }
   });
 }
 function deleteMessage(roomId,idx){
@@ -410,7 +424,7 @@ function clearRoomHistory(roomId){
 function bindAllMsgLongPress(roomId){
   var room=ROOMS.find(function(r){return r.id===roomId;});
   if(!room||!room.msgs)return;
-  room.msgs.forEach(function(node,idx){
-    bindMsgLongPress(node,roomId,idx);
+  room.msgs.forEach(function(node){
+    bindMsgLongPress(node,roomId);
   });
 }

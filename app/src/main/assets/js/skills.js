@@ -42,6 +42,7 @@ function bindSkillCards(container){
   container.querySelectorAll('.skill').forEach(function(el){
     var sid=el.getAttribute('data-skill');
     el.addEventListener('click',function(){
+      if(lpSuppressClick())return;
       B.recordSkill(sid);
       B.toast(t('skill.triggered'));
       renderSkillPage();

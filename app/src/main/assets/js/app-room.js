@@ -154,8 +154,3 @@ $('opsConfirmCancel').addEventListener('click',function(){
 $('opsConfirmOk').addEventListener('click',function(){
   if(_opsConfirmAction)_opsConfirmAction();
 });
-
-/* ============ 顶栏入口 ============ */
-$('btnSettings').addEventListener('click',function(){
-  B.present?B.openSettings():B.toast('设置');
-});
