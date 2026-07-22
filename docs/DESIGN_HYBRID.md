@@ -1,265 +1,206 @@
-# DESIGN: 混合架构 — 云端编排 + 端侧执行
+# DESIGN: 伪流式 Council — 端侧并发 + 先到先显
 
-版本: v1.0
+版本: v2.0
 日期: 2026-07-22
 status: design-ready
+取代: v1.0 (云端编排方案)
 
 ---
 
-## 核心思路
-
-不要把"聊天室"上云，把**AI 编排逻辑**上云。
+## 不用云函数。手机端自己并发。
 
 ```
-┌─ 手机 (端侧, 本地主体) ──────────────────────┐
-│                                                │
-│  房间 / 消息 / 文件 / 设备控制 — 全在本地       │
-│                                                │
-│  用户发起 Council 讨论                          │
-│    → 手机构造上下文 (议题 + 房间描述 + 文件列表) │
-│    → 发给云端网关 (一次 HTTP POST)              │
-│    → 云端并行调模型 + 汇总                      │
-│    → 返回 JSON: {messages, summary, nextSteps}  │
-│    → 手机端渲染卡片                             │
-│    → 用户点"批准" → CapabilityExecutor 执行     │
-│                                                │
-└────────────────────────────────────────────────┘
-          │                          ↑
-          │  POST /council           │ JSON 响应
-          ▼                          │
-┌─ 云端 (无状态网关) ────────────────────────────┐
-│                                                │
-│  收到: {topic, modelIds, context, roomFiles}   │
-│    → 并行调 DeepSeek / Claude / Qwen           │
-│    → 默认模型汇总                              │
-│    → 提取 nextSteps                            │
-│  返回: {messages, summary, nextSteps}           │
-│                                                │
-│  不存任何状态。不存消息。不存文件。              │
-│                                                │
-└────────────────────────────────────────────────┘
+用户发议题 "如何提升首页加载速度"
+  ↓
+手机端开 3 个异步线程, 分别调 DeepSeek / Claude / Qwen 的 API
+  ↓
+Claude 先回来 (3.2s) → evalJs → 聊天区立刻出现 Claude 的回复  ← 用户看到第一条思考
+DeepSeek 回来 (5.1s) → evalJs → 追加
+Qwen 回来 (7.8s)   → evalJs → 追加
+  ↓
+全部收齐 → 默认模型汇总 (2s) → evalJs → 追加汇总卡片
 ```
+
+**用户不用等。谁的先好就先看谁的。** 这是流式体验——不需要 SSE、不需要云函数、不需要改 API。
 
 ---
 
-## 得到了什么
+## 和现在的区别
 
-| 维度 | 纯端侧 (现在) | 混合 (改后) |
-|------|-------------|-----------|
-| 并行调用延迟 | 手机等 4 次 API 往返 | 云端一次汇总，手机只等一个 HTTP 响应 |
-| API Key 管理 | 分散在每个用户的手机里 | 集中在云端，一人维护 |
-| 模型限流 | 无 | 云端统一限流，防滥用 |
-| 本地文件/设备 | 端侧控制 | **不变**——端侧仍然是绝对主体 |
-| 断网 | 不能用 | 自动降级到本地模式（端侧已有 CouncilClient） |
-| 工程改动 | — | 写一个转发 API + 手机端改一行 URL |
+| | 现在 | 改后 |
+|------|------|------|
+| 调用方式 | 并行, 但等全部收齐才返回 | 并行, 每个模型完成就推给 JS |
+| 用户体验 | 空白 → 3 条一起出现 | Claude 先到先看 → DeepSeek 追加 → Qwen 追加 |
+| 汇总 | 同一次返回 | 全部收齐后单独调一次 |
+| 云函数 | 无 | 无 — 全在手机端 |
+| Java 改动 | — | CouncilClient 拆为增量回调 |
 
 ---
 
-## 云端网关
+## CouncilClient 改造
 
-### 接口
+### 当前
 
+```java
+// 收集所有结果 → 汇总 → 一次返回 JSON
+for (Future<ModelReply> f : futures) {
+    replies.add(f.get(30, TimeUnit.SECONDS));
+}
+String summary = summarize(topic, replies);
+return buildResult(replies, summary); // 一次 JSON 返回
 ```
-POST https://api.mov.app/v1/council
-Content-Type: application/json
-Authorization: Bearer <user_token>
 
-{
-  "topic": "如何提升首页加载速度",
-  "models": [
-    {"id":"deepseek_v4","role":"通用"},
-    {"id":"claude_opus","role":"技术"}
-  ],
-  "context": "房间: 产品V2.0。当前文件: src/Home.tsx, package.json。前一轮讨论: ...",
-  "summaryModel": "deepseek_v4"
+### 改后
+
+```java
+public void discussAsync(String topic, List<String> modelIds, String context,
+                          String callbackId) {
+    
+    List<ModelConfig> models = resolveAndValidate(modelIds);
+    ExecutorService exec = Executors.newFixedThreadPool(3);
+    List<Future<ModelReply>> futures = new ArrayList<>();
+    
+    // 发起并行调用
+    for (ModelConfig mc : models) {
+        futures.add(exec.submit(() -> {
+            AiClient client = new AiClient(mc, buildRolePrompt(mc));
+            AiResponse resp = client.chat(topic);
+            return new ModelReply(mc.id, mc.name, mc.role, mc.color,
+                                   resp.success ? resp.content : "调用失败",
+                                   resp.success);
+        }));
+    }
+    
+    // 每个模型完成就回调 JS (谁先谁先显)
+    for (Future<ModelReply> f : futures) {
+        aiExecutor.execute(() -> {
+            try {
+                ModelReply reply = f.get(30, TimeUnit.SECONDS);
+                JSONObject msg = replyToJson(reply);
+                evalJs("window._councilReply('" + callbackId + "'," + msg + ")");
+            } catch (Exception e) {
+                // 单模型失败不影响其他
+            }
+        });
+    }
+    
+    // 全部收齐后汇总
+    aiExecutor.execute(() -> {
+        try {
+            // 等所有 future 完成
+            List<ModelReply> replies = new ArrayList<>();
+            for (Future<ModelReply> f : futures) {
+                replies.add(f.get(30, TimeUnit.SECONDS));
+            }
+            
+            // 汇总
+            String summary = summarize(topic, replies);
+            String nextSteps = extractNextSteps(summary);
+            
+            JSONObject result = new JSONObject();
+            result.put("type", "summary");
+            result.put("summary", summary);
+            result.put("nextSteps", nextSteps);
+            evalJs("window._councilReply('" + callbackId + "'," + result + ")");
+            
+        } catch (Exception e) {
+            evalJs("window._councilReply('" + callbackId + 
+                    "',{\"type\":\"error\",\"content\":\"" + e.getMessage() + "\"})");
+        }
+        exec.shutdown();
+    });
 }
 ```
 
-### 响应
+---
 
-```json
-{
-  "messages": [
-    {"who":"deepseek_v4","name":"DeepSeek V4","role":"通用",
-     "content":"建议优先优化图片懒加载和 bundle split。"},
-    {"who":"claude_opus","name":"Claude Opus","role":"技术",
-     "content":"从技术角度, CDN + SSR 可以解决大部分问题。"}
-  ],
-  "summary": "共识: 懒加载优先。分歧: CDN vs bundle split 的优先级。",
-  "nextSteps": [
-    {"action":"file.write","target":"cdn-analysis.md","detail":"CDN 方案调研"},
-    {"action":"file.write","target":"bundle-split.md","detail":"Bundle split 实现方案"}
-  ]
-}
-```
+## JS 侧改动
 
-### 实现
-
-一个无状态的 HTTP 服务。选型：Cloudflare Workers / Vercel Edge Function / Deno Deploy——免费额度足够小团队用。
-
-核心逻辑 50 行：
+### 当前
 
 ```javascript
-// cloud-gateway/council.js
-export default {
-  async fetch(request) {
-    const { topic, models, context, summaryModel } = await request.json();
-    
-    // 并行调用
-    const replies = await Promise.all(models.map(async (m) => {
-      const resp = await fetch(m.provider === 'deepseek' 
-        ? 'https://api.deepseek.com/v1/chat/completions'
-        : 'https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${getKey(m.id)}` },
-        body: JSON.stringify(buildBody(m, topic, context))
-      });
-      return { who: m.id, name: m.name, role: m.role, 
-               content: extractContent(await resp.json()) };
-    }));
-    
-    // 汇总
-    const summary = await summarize(topic, replies, summaryModel);
-    
-    return Response.json({
-      messages: replies,
-      summary: summary.text,
-      nextSteps: extractSteps(summary.text)
+// chat.js runCouncil()
+B.councilAsync(topic, function(resp) {
+    // 一次性收到所有消息 + 汇总
+    resp.messages.forEach(function(m) {
+        push(id, mkMsg({t:'agent', who:m.who, role:m.role, h:esc(m.content)}));
     });
-  }
+    push(id, mkMsg({t:'sys', h:'COUNCIL 汇总...'}));
+    push(id, mkMsg({t:'agent', who:'hermes', h:esc(resp.summary)}));
+});
+```
+
+### 改后
+
+```javascript
+// chat.js runCouncil()
+setPhase(id, '讨论中');
+var replyCount = 0;
+
+window._councilReply = function(callbackId, data) {
+    if (data.type === 'summary') {
+        // 汇总
+        setPhase(id, '收敛中');
+        push(id, mkMsg({t:'sys', h:'COUNCIL 汇总'}));
+        push(id, mkMsg({t:'agent', who:'hermes', h:esc(data.summary)}));
+        setPhase(id, '待评审');
+        return;
+    }
+    
+    if (data.type === 'error') {
+        push(id, mkMsg({t:'sys', h:'Council 调用失败: ' + esc(data.content)}));
+        return;
+    }
+    
+    // 单个模型回复 — 先到先显
+    replyCount++;
+    push(id, mkMsg({
+        t:'agent',
+        who: data.who,
+        name: data.name,
+        role: data.role,
+        h: esc(data.content)
+    }));
+    ev('Council 收到 #' + replyCount + ' ' + data.name);
 };
 ```
 
-**不存任何东西。** 没有数据库。没有会话。没有文件。收到请求 → 调模型 → 返回结果 → 遗忘。
+**关键变化**：不再等全部收齐。每个模型的回复作为独立消息推入聊天流。最后一条是汇总。
 
 ---
 
-## 端侧改动
+## 视觉体验
 
-### CouncilClient.java
-
-```java
-// 当前: 本地并行调用
-public String discuss(String topic, List<String> modelIds, String context) {
-    // ExecutorService + Future + 本地 AiClient 调用...
-}
-
-// 改后: 优先走云端，失败降级本地
-public String discuss(String topic, List<String> modelIds, String context) {
-    String cloudResult = tryCloudGateway(topic, modelIds, context);
-    if (cloudResult != null) return cloudResult;
-    
-    // 云端不可用 → 降级本地
-    return discussLocal(topic, modelIds, context);
-}
+```
+用户发议题
+  ↓ 1s
+[typing: Claude 正在思考...]        ← 显示等待状态
+  ↓ 3.2s
+[CL] Claude · 技术                   ← 第一个回复出现
+建议从 CDN + SSR 入手解决...
+  ↓ 5.1s
+[DS] DeepSeek · 通用                 ← 第二个追加
+建议优化图片懒加载...
+  ↓ 7.8s
+[QW] Qwen · 数据                     ← 第三个追加
+从用户行为看, 首页跳出率...
+  ↓ 9s
+── COUNCIL 汇总 ──                   ← 汇总卡片
+共识: 懒加载和 CDN 优先...
+[批准并执行] [驳回再议]
 ```
 
-### tryCloudGateway
+**这就是流式体验。没写一行 SSE 代码。**
 
-```java
-private String tryCloudGateway(String topic, List<String> modelIds, String context) {
-    try {
-        URL url = new URL(CLOUD_GATEWAY_URL + "/v1/council");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setConnectTimeout(5000);
-        conn.setReadTimeout(30000);
-        
-        JSONObject body = new JSONObject();
-        body.put("topic", topic);
-        body.put("models", buildModelsArray(modelIds));
-        body.put("context", context);
-        body.put("summaryModel", registry.getDefault().id);
-        
-        // 发送请求...
-        // 返回响应...
-        
-        return responseBody;
-    } catch (Exception e) {
-        Log.w(TAG, "Cloud gateway unreachable, fallback to local");
-        return null; // 触发降级
-    }
-}
-```
+---
 
-### 改动量
+## 改动量
 
 | 文件 | 改动 |
 |------|------|
-| `CouncilClient.java` | 加 `tryCloudGateway()` 方法 (~30行) + 原 discuss 改名 discussLocal |
-| `HermesActivity.java` | 不加（CouncilClient 内部切换，桥方法不变） |
-| JS 侧 | 零改动（返回的 JSON 格式不变） |
+| `CouncilClient.java` | 新增 `discussAsync()` 方法 (~60行)。旧 `discuss()` 保留兼容 |
+| `HermesActivity.java` | 桥方法 `councilAsync` 改为调 `discussAsync` |
+| `js/chat.js` | `runCouncil()` 改为增量接收 (~40行) |
+| `js/bridge.js` | `councilAsync` 签名不变 |
 
-**手机端改 ~40 行 Java，前端零改动。** 因为云端返回的 JSON 结构和当前 `CouncilClient.discuss()` 返回的完全一致。
-
----
-
-## 怎么处理 API Key
-
-### 方案 A（推荐）：Key 存云端环境变量
-
-```
-Cloudflare Workers: 环境变量 DEEPSEEK_KEY, CLAUDE_KEY
-手机端: 只发 modelId，不发 Key
-```
-
-用户不需要在手机上填 Key。云端统一管理。这是最大的体验提升——当前的"配 API Key"步骤直接消失。
-
-### 方案 B：Key 仍在端侧，云端不存
-
-手机端发送请求时附上 Key。云端用完即丢，不持久化。但网络传输有泄漏风险。
-
-**建议 A。** API Key 是用户最大的摩擦点——去掉它，用户只需要知道"我有哪些模型可以用"。
-
----
-
-## 降级策略
-
-| 情况 | 行为 |
-|------|------|
-| 云端正常 | 走云端 |
-| 云端超时 (5s 连接 / 30s 读写) | 自动降级本地 |
-| 云端返回错误 | 自动降级本地 |
-| 用户关掉"使用云端网关"开关 | 始终走本地 |
-| 飞行模式 | 直接走本地 |
-
-降级对用户透明——感受不到云端是否存在。顶多是"这次讨论有点慢"（因为走了本地串行）。
-
----
-
-## AI 网关开源
-
-网关代码开源 MIT。任何人都能自己部署。用户可以用 MOV 官方的网关（默认），也可以一键部署自己的网关到 Cloudflare（免费额度）。
-
-**这意味着**：即使用户不信任 MOV 官方网关，他可以 5 分钟部署自己的实例。API Key 存在他自己的 Cloudflare 账号里。零信任问题。
-
----
-
-## 需要改的文件
-
-### 新增
-
-| 文件 | 内容 |
-|------|------|
-| `cloud-gateway/` | **新仓库** — Cloudflare Workers 网关代码 (~100行 JS) |
-| `cloud-gateway/wrangler.toml` | Cloudflare 部署配置 |
-| `cloud-gateway/README.md` | 一键部署指南 |
-
-### 端侧改动
-
-| 文件 | 改动 |
-|------|------|
-| `CouncilClient.java` | 加 `tryCloudGateway()` + 降级逻辑 (~40行) |
-| `HermesSettingsActivity.java` | 加"使用云端网关"开关 |
-| `js/runtime.js` | 模型区如果走云端, 显示"☁ 云端编排"标识 |
-| `js/i18n.js` | 加 3 个 key |
-
----
-
-## 未解决问题
-
-1. 云端网关的用户认证——Bearer token 怎么生成和分发？
-2. 多用户场景下，云端怎么区分不同用户的模型配额？
-3. 开源网关的自部署指南需要写多详细——目标用户是开发者，可以用 wrangler CLI
-4. 当前免费方案（Cloudflare Workers 免费 10 万次/天）够不够？
+**零云函数。零服务器。全在手机端。改 ~100 行 Java + ~40 行 JS。**
