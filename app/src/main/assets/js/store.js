@@ -29,7 +29,7 @@ function persistRooms(){
     })));
   }catch(e){}
 }
-var AV={ 'claude':['CL','#52525B'],'gpt-5':['G5','#27272A'],'gemini':['GM','#71717A'],'hermes':['HE','#D97706'],'mov':['MO','#D97706'],'YOU':['ME','#09090B'] };
+var AV={ 'claude':['CL','#52525B'],'gpt-5':['G5','#27272A'],'gemini':['GM','#71717A'],'mov':['MO','#D97706'],'YOU':['ME','#09090B'] };
 /* 多模型: 把注册表模型的颜色合并进 AV 表 */
 function refreshModelAvatars(){
   try{
