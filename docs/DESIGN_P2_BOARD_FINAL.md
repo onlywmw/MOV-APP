@@ -59,6 +59,19 @@ Then:
   5. 不含 id="boardAddSheet"
 ```
 
+### TC-P2-06：DOM 树与 Tab 结构一致
+
+```
+Given: 看板已删除
+When: 检查 hermes-shell.html
+Then:
+  1. #view-board 及其所有子节点不存在
+  2. render.js 中任何 getElementById('view-board') 或 $('view-board') 调用不存在
+  3. setTab() 函数只处理 'chat' 和 'run' 两个值
+  4. CSS 中无 .view-board 相关的 display/opacity 规则（如果有）
+  5. 底部导航 button 数量 = 2（不是 3）
+```
+
 ### TC-P2-05：现有功能不受影响
 
 ```
@@ -82,6 +95,7 @@ Then:
 3. **`render.js` 的 `setTab()` 中的 `if(t==='board')` 分支必须删除。** 如果 JS 中其他地方引用了 `_boardApps` / `_boardActive` / `_boardHideTimer` / `_boardInited`，也一并删除。
 4. **`localStorage` 中的 `mov_board_apps_v1` key 不清理。** 用户以后想用回看板（从 git history 恢复代码），数据还在。不占什么空间。
 5. **构建后必须验证 APK 中的 assets 目录不包含被删除的文件。** 用 `unzip -l app.apk | grep board` 确认零结果。
+6. **删除后 DOM 树必须与 Tab 结构一致。** `hermes-shell.html` 中 `#view-board` 及其所有子节点必须不存在。`render.js` 中任何对 `view-board` 的引用必须删除。删除后底部导航 `button` 数量必须等于 2。禁止留下"隐藏但未删除"的 DOM 节点——它们占用内存、增加渲染树大小、且新开发者看到会困惑。
 
 ---
 

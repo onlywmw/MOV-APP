@@ -108,7 +108,7 @@ Then:
 
 1. **"自动执行"模式必须从代码中删除。** 不是隐藏开关——是删掉相关分支。全局只有一种模式：手动审批。
 2. **预览卡片在 msgData 中的 type 必须是 "fileWritePreview"。** 重渲染时根据 type 恢复卡片 DOM 结构。
-3. **卡片过期判断：** WebView session 内 `expired=false`。APP 重启后所有 fileWritePreview 卡片 `expired=true`。
+3. **卡片过期判断：基于 `sessionId`，不基于生命周期回调。** 卡片数据中存 `sessionId = Date.now()`（APP 启动时生成一次）。每次渲染卡片时比对：当前 `sessionId` === 卡片 `sessionId` → `expired=false`；不匹配 → `expired=true`。**禁止用 `window.onunload` 或 `HermesActivity.onDestroy` 来判断过期**——Android 系统强杀进程时这两个回调都不触发。`sessionId` 存在 `localStorage` 或全局变量中，每次 APP 冷启动重新生成。
 4. **Cron 白名单只允许查询类操作。** 具体名单：`help, torch.on, torch.off, battery.status, system.info, brightness.get, brightness.set, volume.get, volume.set, wifi.status, vibrate, clipboard.get, network.info, process.list, file.ls`。**禁止** `file.write, file.read, file.delete, file.mkdir, http.get, notification.post, tts.speak, clipboard.set, toast, input.tap, input.swipe, screen.capture, sms.recent, contacts.list, telephony.call, app.list, app.launch, location.get, camera.photo`。
 5. **保存按钮必须防重复提交。** 点击后立即 `disabled=true` + 文 字变"保存中..."。写入完成后变"已保存 ✓"。写入失败恢复可用。
 

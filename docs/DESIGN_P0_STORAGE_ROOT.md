@@ -83,9 +83,10 @@ Then:
 
 1. **必须用 `getExternalFilesDir(null)` 的返回值，禁止硬编码路径。** `StorageManager.BASE` 必须是运行时初始化的字段，不能是编译期常量。
 2. **初始化必须在 `HermesApplication.onCreate()` 中完成。** 必须在任何文件操作之前。
-3. **迁移必须在子线程执行，禁止主线程。** 用 `AsyncTask` 或 `Thread` + `Handler`。迁移期间 UI 可以展示进度（不强求，但不能 ANR）。
-4. **迁移必须保证原子性。** 如果一个文件的复制失败，记录日志，继续复制剩余文件。最后汇总：X 个成功 / Y 个失败 / Z 个跳过。失败的文件不阻塞启动。
-5. **`CapabilityExecutor.ROOMS_BASE` 必须从 `StorageManager` 获取，禁止自己维护第二份路径常量。**
+3. **迁移触发时机：`HermesActivity.onCreate` 中 `setContentView` 之后、`shell.loadUrl` 之前。** 用 `WorkManager` 的 `OneTimeWorkRequest` 执行迁移。禁止在 `Application.onCreate` 中直接开线程（Android 规定 Application.onCreate 必须在主线程快速完成，否则系统判定启动超时）。禁止用 `AsyncTask`（API 30 已废弃）。禁止用裸 `Thread`（无法感知应用生命周期，APP 被杀后任务丢失）。
+4. **迁移必须保证幂等性。** 复制前检查目标文件是否已存在且大小一致——若一致则跳过（防重复复制）。若不一致则覆盖（恢复上次中断的迁移）。迁移完成后写 `migrated_storage_v4: true` 标记。
+5. **每个文件的复制失败单独记录，不阻塞其他文件。** 最终汇总：X 个成功 / Y 个失败 / Z 个跳过。失败文件列表写入 `migration_failures.log`（在 MOV 数据目录内），禁止静默吞掉错误。
+6. **`CapabilityExecutor.ROOMS_BASE` 必须从 `StorageManager` 获取，禁止自己维护第二份路径常量。**
 
 ---
 
