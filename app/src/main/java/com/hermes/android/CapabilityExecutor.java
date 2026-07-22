@@ -755,7 +755,10 @@ public class CapabilityExecutor {
     /** 路径逃逸检查: target 必须在 base 内 */
     private boolean isPathSafe(java.io.File base, java.io.File target) {
         try {
-            return target.getCanonicalPath().startsWith(base.getCanonicalPath());
+            String basePath = base.getCanonicalFile().getPath();
+            String targetPath = target.getCanonicalFile().getPath();
+            return targetPath.equals(basePath)
+                    || targetPath.startsWith(basePath + java.io.File.separator);
         } catch (Exception e) {
             return false;
         }

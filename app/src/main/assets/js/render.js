@@ -31,7 +31,9 @@ function safeBubble(html){
 }
 
 /* ---------- 房间列表渲染 · Apple grouped ---------- */
-function avstack(r){var s='<span class="avstack">';var ms=Array.isArray(r.members)?r.members:(r.members&&r.members.ai?r.members.ai:[]);ms.forEach(function(m){var a=AV[m]||AV.mov;s+='<i style="background:'+a[1]+'">'+a[0]+'</i>';});return s+'</span>';}
+function avstack(r){var s='<span class="avstack">';var ms=Array.isArray(r.members)?r.members:(r.members&&r.members.ai?r.members.ai:[]);ms.forEach(function(m){var a=AV[m]||AV.mov;var col=safeColor(a[1]);s+='<i style="background:'+col+'">'+esc(a[0])+'</i>';});return s+'</span>';}
+/* P0: 颜色白名单 — 只允许 #hex 或字母数字命名色，否则回退默认色 (防 style 注入) */
+function safeColor(c){c=String(c||'');return /^(#[0-9a-fA-F]{3,8}|[a-zA-Z0-9]+)$/.test(c)?c:'#D97706';}
 function roomCard(r){
   var bc=PHASE_BADGE[r.phase]||'off';
   return '<div class="room" data-room="'+r.id+'">'

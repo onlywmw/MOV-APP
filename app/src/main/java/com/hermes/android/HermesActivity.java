@@ -61,6 +61,8 @@ public class HermesActivity extends AppCompatActivity {
     private static final int PERM_REQUEST = 1001;
     private static final int MAX_HISTORY = 10;
     private static final String HISTORY_KEY = "chat_history_json";
+    /** P0: 文件选择器拷贝上限 (与 BridgeValidator 5MB 一致) */
+    private static final long MAX_COPY_BYTES = 5L * 1024 * 1024;
 
     private WebView shell;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
@@ -150,10 +152,19 @@ public class HermesActivity extends AppCompatActivity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setTextZoom(100);
-        s.setAllowFileAccess(true);
+        // P0: 关闭文件/content 访问，防 WebView 越权读本地文件
+        // (file:///android_asset 加载在 allowFileAccess=false 下仍可用)
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
 
         shell.setBackgroundColor(0xFFF6F6F7);
-        shell.setWebViewClient(new WebViewClient());
+        // P0: URL 白名单，仅放行本地 assets
+        shell.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return url == null || !url.startsWith("file:///android_asset/");
+            }
+        });
         shell.setWebChromeClient(new WebChromeClient());
         shell.addJavascriptInterface(new com.hermes.android.bridge.BridgeFactory(this), "HermesBridge");
         shell.loadUrl("file:///android_asset/hermes-shell.html");
@@ -194,7 +205,15 @@ public class HermesActivity extends AppCompatActivity {
         aiExecutor.shutdownNow();
         // P2-13: 保存聊天历史
         saveChatHistory();
-        if (shell != null) shell.destroy();
+        if (shell != null) {
+            // P0: destroy 前先从父布局移除并移除 JS 桥，防泄漏与悬空引用
+            shell.removeJavascriptInterface("HermesBridge");
+            if (shell.getParent() instanceof android.view.ViewGroup) {
+                ((android.view.ViewGroup) shell.getParent()).removeView(shell);
+            }
+            shell.destroy();
+            shell = null;
+        }
         super.onDestroy();
     }
 
@@ -249,30 +268,59 @@ public class HermesActivity extends AppCompatActivity {
 
     // ==================== P1-8: 文件信息 ====================
 
-    /** Fix 1: 从 URI 复制文件到房间目录 */
+    /** Fix 1: 从 URI 复制文件到房间目录 (P0: 文件名消毒 + roomId 校验 + 子线程 + 5MB 上限) */
     private void copyFileToRoom(String roomId, Uri uri) {
-        try {
-            String name = "unknown";
-            try (android.database.Cursor c = getContentResolver().query(
-                    uri, null, null, null, null)) {
-                if (c != null && c.moveToFirst()) {
-                    int idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
-                    if (idx >= 0) name = c.getString(idx);
-                }
-            }
-            java.io.File base = new java.io.File(storageManager.getRoomsDir(), roomId);
-            base.mkdirs();
-            java.io.File target = new java.io.File(base, name);
-            try (java.io.InputStream is = getContentResolver().openInputStream(uri);
-                 java.io.FileOutputStream os = new java.io.FileOutputStream(target)) {
-                byte[] buf = new byte[8192];
-                int n;
-                while ((n = is.read(buf)) != -1) os.write(buf, 0, n);
-            }
-            Log.i(TAG, "copyFileToRoom: " + name + " → " + target.getAbsolutePath());
-        } catch (Exception e) {
-            Log.w(TAG, "copyFileToRoom: " + e.getMessage());
+        // P0: roomId 与 StorageManager/BridgeValidator 同规则
+        if (com.hermes.android.bridge.BridgeValidator.checkRoomId(roomId) != null) {
+            Log.w(TAG, "copyFileToRoom: 非法房间ID " + roomId);
+            return;
         }
+        String name = "unknown";
+        try (android.database.Cursor c = getContentResolver().query(
+                uri, null, null, null, null)) {
+            if (c != null && c.moveToFirst()) {
+                int idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) name = c.getString(idx);
+            }
+        }
+        // P0: DISPLAY_NAME 消毒 — 拒绝路径分隔与 ".."，只保留文件名本体
+        if (name == null || name.contains("/") || name.contains("\\")
+                || name.contains("..") || name.isEmpty()) {
+            Log.w(TAG, "copyFileToRoom: 非法文件名 " + name);
+            return;
+        }
+        final String safeName = name;
+        aiExecutor.execute(() -> {
+            try {
+                java.io.File base = new java.io.File(storageManager.getRoomsDir(), roomId);
+                base.mkdirs();
+                java.io.File target = new java.io.File(base, safeName).getCanonicalFile();
+                String basePath = base.getCanonicalFile().getPath();
+                if (!target.getPath().startsWith(basePath + java.io.File.separator)) {
+                    Log.w(TAG, "copyFileToRoom: 路径越界 " + safeName);
+                    return;
+                }
+                long total = 0;
+                try (java.io.InputStream is = getContentResolver().openInputStream(uri);
+                     java.io.FileOutputStream os = new java.io.FileOutputStream(target)) {
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = is.read(buf)) != -1) {
+                        total += n;
+                        // P0: 与 BridgeValidator 5MB 上限一致，超限拒绝
+                        if (total > MAX_COPY_BYTES) {
+                            Log.w(TAG, "copyFileToRoom: 文件过大 (>5MB) " + safeName);
+                            target.delete();
+                            return;
+                        }
+                        os.write(buf, 0, n);
+                    }
+                }
+                Log.i(TAG, "copyFileToRoom: " + safeName + " → " + target.getAbsolutePath());
+            } catch (Exception e) {
+                Log.w(TAG, "copyFileToRoom: " + e.getMessage());
+            }
+        });
     }
 
     private String getFileInfoJson(Uri uri) {

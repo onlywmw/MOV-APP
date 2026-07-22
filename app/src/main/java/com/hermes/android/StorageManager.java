@@ -81,6 +81,10 @@ public class StorageManager {
 
     /** 初始化房间存储目录结构 */
     public void initRoomStorage(String roomId) {
+        if (!isValidId(roomId)) {
+            Log.w(TAG, "initRoomStorage: 非法房间ID " + roomId);
+            return;
+        }
         File room = new File(baseDir, "rooms/" + roomId + "/files/");
         new File(room, "work").mkdirs();
         new File(room, "work-snapshots").mkdirs();
@@ -101,6 +105,7 @@ public class StorageManager {
 
     public String listWorkFiles(String roomId) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File dir = new File(baseDir, "rooms/" + roomId + "/files/work");
             JSONArray arr = listDir(dir);
             return new JSONObject().put("ok", true).put("files", arr).toString();
@@ -111,6 +116,7 @@ public class StorageManager {
 
     public String saveWorkFile(String roomId, String path, String content, String author) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File dir = new File(baseDir, "rooms/" + roomId + "/files/work");
             File target = new File(dir, path);
             if (!isSafe(dir, target)) return errJson("路径越界");
@@ -148,6 +154,7 @@ public class StorageManager {
 
     public String listVersions(String roomId, String path) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File snapDir = new File(baseDir, "rooms/" + roomId + "/files/work-snapshots");
             String prefix = path.replace("/", "_") + ".";
             JSONArray arr = new JSONArray();
@@ -171,6 +178,7 @@ public class StorageManager {
 
     public String restoreVersion(String roomId, String path, String snapshotName) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File snapDir = new File(baseDir, "rooms/" + roomId + "/files/work-snapshots");
             File snap = new File(snapDir, snapshotName);
             if (!isSafe(snapDir, snap)) return errJson("路径越界");
@@ -196,6 +204,7 @@ public class StorageManager {
 
     public String listInboxFiles(String roomId) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File dir = new File(baseDir, "rooms/" + roomId + "/files/inbox");
             JSONArray arr = listDir(dir);
             return new JSONObject().put("ok", true).put("files", arr).toString();
@@ -205,6 +214,10 @@ public class StorageManager {
     }
 
     public File getInboxDir(String roomId) {
+        if (!isValidId(roomId)) {
+            Log.w(TAG, "getInboxDir: 非法房间ID " + roomId);
+            return null;
+        }
         File dir = new File(baseDir, "rooms/" + roomId + "/files/inbox");
         dir.mkdirs();
         return dir;
@@ -214,6 +227,7 @@ public class StorageManager {
 
     public String listArchiveFiles(String roomId) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File dir = new File(baseDir, "rooms/" + roomId + "/files/archive");
             JSONArray sources = new JSONArray();
             File[] dirs = dir.listFiles(File::isDirectory);
@@ -234,12 +248,16 @@ public class StorageManager {
 
     public String writeArchive(String roomId, String source, String content) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             String date = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
             String time = new SimpleDateFormat("HHmm", Locale.US).format(new Date());
-            File dir = new File(baseDir, "rooms/" + roomId + "/files/archive/" + source);
+            File archiveBase = new File(baseDir, "rooms/" + roomId + "/files/archive");
+            File dir = new File(archiveBase, source != null ? source : "");
+            if (!isSafe(archiveBase, dir)) return errJson("路径越界");
             dir.mkdirs();
             String fileName = date + "_" + time + ".md";
-            File target = new File(dir, fileName);
+            File target = new File(dir, fileName).getCanonicalFile();
+            if (!isSafe(dir, target)) return errJson("路径越界");
             try (FileWriter fw = new FileWriter(target)) {
                 fw.write(content);
             }
@@ -280,7 +298,10 @@ public class StorageManager {
 
     public String useTemplate(String templateName, String roomId, String targetName) {
         try {
-            File src = new File(baseDir, "templates/" + templateName);
+            if (!isValidId(roomId)) return errJson("非法房间ID");
+            File tplBase = new File(baseDir, "templates");
+            File src = new File(tplBase, templateName).getCanonicalFile();
+            if (!isSafe(tplBase, src)) return errJson("路径越界");
             if (!src.exists()) return errJson("模板不存在");
             String content = new String(Files.readAllBytes(src.toPath()), StandardCharsets.UTF_8);
 
@@ -355,6 +376,7 @@ public class StorageManager {
 
     public String deleteWorkFile(String roomId, String path) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File dir = new File(baseDir, "rooms/" + roomId + "/files/work");
             File target = new File(dir, path);
             if (!isSafe(dir, target)) return errJson("路径越界");
@@ -365,6 +387,7 @@ public class StorageManager {
 
     public String deleteInboxFile(String roomId, String path) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File dir = new File(baseDir, "rooms/" + roomId + "/files/inbox");
             File target = new File(dir, path);
             if (!isSafe(dir, target)) return errJson("路径越界");
@@ -375,6 +398,7 @@ public class StorageManager {
 
     public String deleteArchiveFile(String roomId, String path) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File dir = new File(baseDir, "rooms/" + roomId + "/files/archive");
             File target = new File(dir, path);
             if (!isSafe(dir, target)) return errJson("路径越界");
@@ -387,6 +411,7 @@ public class StorageManager {
 
     public String getRoomMeta(String roomId) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File metaFile = new File(baseDir, "rooms/" + roomId + "/files/.meta/index.json");
             if (!metaFile.exists()) return "{\"ok\":true,\"files\":[]}";
             String content = new String(Files.readAllBytes(metaFile.toPath()), StandardCharsets.UTF_8);
@@ -400,6 +425,7 @@ public class StorageManager {
 
     public String appendChatMessage(String roomId, String messageJson) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             String date = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
             File chatDir = new File(baseDir, "rooms/" + roomId + "/chat");
             chatDir.mkdirs();
@@ -415,6 +441,11 @@ public class StorageManager {
 
     public String loadChatMessages(String roomId, String date) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
+            // date 只允许 yyyy-MM-dd（与 appendChatMessage 写入格式一致），防跨目录读取
+            if (date == null || !date.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                return errJson("非法日期格式");
+            }
             File dayFile = new File(baseDir, "rooms/" + roomId + "/chat/" + date + ".jsonl");
             if (!dayFile.exists()) return "{\"ok\":true,\"messages\":[]}";
             String content = new String(Files.readAllBytes(dayFile.toPath()), StandardCharsets.UTF_8);
@@ -440,6 +471,7 @@ public class StorageManager {
 
     public String writeFile(String roomId, String path, String content) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             if (content != null && content.length() > MAX_FILE_SIZE) {
                 return errJson("文件过大 (>" + (MAX_FILE_SIZE / 1024 / 1024) + "MB)");
             }
@@ -458,6 +490,7 @@ public class StorageManager {
 
     public String readFile(String roomId, String path) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File base = new File(baseDir, "rooms/" + roomId);
             File target = new File(base, path);
             if (!isSafe(base, target)) return errJson("路径越界");
@@ -473,6 +506,7 @@ public class StorageManager {
 
     public String deleteFile(String roomId, String path) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File base = new File(baseDir, "rooms/" + roomId);
             File target = new File(base, path);
             if (!isSafe(base, target)) return errJson("路径越界");
@@ -490,6 +524,7 @@ public class StorageManager {
 
     public String listRoomFiles(String roomId, String subPath) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File base = new File(baseDir, "rooms/" + roomId);
             File dir = (subPath == null || subPath.isEmpty()) ? base : new File(base, subPath);
             if (!isSafe(base, dir)) return errJson("路径越界");
@@ -502,6 +537,7 @@ public class StorageManager {
 
     public String initRoom(String roomId, String name, String description, String membersJson) {
         try {
+            if (!isValidId(roomId)) return errJson("非法房间ID");
             File room = new File(baseDir, "rooms/" + roomId);
             room.mkdirs();
             JSONObject meta = new JSONObject();
@@ -592,10 +628,18 @@ public class StorageManager {
 
     private boolean isSafe(File base, File target) {
         try {
-            return target.getCanonicalPath().startsWith(base.getCanonicalPath());
+            String basePath = base.getCanonicalFile().getPath();
+            String targetPath = target.getCanonicalFile().getPath();
+            return targetPath.equals(basePath)
+                    || targetPath.startsWith(basePath + File.separator);
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /** 房间/资源 ID 白名单: 只允许 [A-Za-z0-9_-]{1,64}，防路径遍历 */
+    private static boolean isValidId(String id) {
+        return id != null && id.matches("^[A-Za-z0-9_-]{1,64}$");
     }
 
     private String okJson() {
