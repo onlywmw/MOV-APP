@@ -14,20 +14,21 @@ function openSheetExclusive(maskId,sheetId){
 }
 
 /* ============ 新建房间 ============ */
+/* ============ 新建房间: 居中弹窗 ============ */
 $('fabNew').addEventListener('click',function(){
-  closeAllSheets();
-  $('sheetMask').classList.add('open');
-  $('sheetNew').classList.add('open');
+  $('newRoomMask').classList.add('open');
   $('newRoomName').value='';
   $('newRoomName').focus();
 });
 
-function closeNewRoomSheet(){
-  closeAllSheets();
+function closeNewRoomDialog(){
+  $('newRoomMask').classList.remove('open');
 }
 
-$('sheetMask').addEventListener('click',closeNewRoomSheet);
-$('btnSheetClose').addEventListener('click',closeNewRoomSheet);
+$('newRoomMask').addEventListener('click',function(e){
+  if(e.target===this)closeNewRoomDialog();
+});
+$('btnSheetClose').addEventListener('click',closeNewRoomDialog);
 
 $('btnCreate').addEventListener('click',function(){
   var name=$('newRoomName').value.trim()||'新项目';
@@ -38,7 +39,7 @@ $('btnCreate').addEventListener('click',function(){
     unread:0, played:false, msgs:[],
     seed:[{t:'agent',who:'mov',h:'我是 MOV。直接下达指令或提问即可。'}]
   });
-  closeNewRoomSheet();
+  closeNewRoomDialog();
   B.initRoomStorage(id);
   renderRooms();persistRooms();enterRoom(id);
 });
