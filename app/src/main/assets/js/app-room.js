@@ -30,7 +30,7 @@ $('fabNew').addEventListener('click',function(){
   $('newRoomName').focus();ev('打开新建房间 sheet');
 });
 $('sheetMask').addEventListener('click',closeSheet);
-function closeSheet(){$('sheetMask').classList.remove('open');$('sheetNew').classList.remove('open');}
+function closeSheet(){closeAllSheets();}
 
 /* 第一步 → 第二步 */
 $('btnStep1Next').addEventListener('click',function(){
@@ -166,8 +166,7 @@ function openRoomOpsSheet(roomId){
   ev('打开房间操作 sheet');
 }
 function closeRoomOpsSheet(){
-  $('roomOpsMask').classList.remove('open');
-  $('sheetRoomOps').classList.remove('open');
+  closeAllSheets();
   _opsRoomId=null;_opsConfirmAction=null;
 }
 function showOpsConfirm(text,action){
