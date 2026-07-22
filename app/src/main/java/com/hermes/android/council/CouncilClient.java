@@ -173,14 +173,18 @@ public class CouncilClient {
             String summaryPrompt = "你是会议主持人。请根据以下讨论:\n"
                     + "1. 用 2-3 句话总结共识和分歧\n"
                     + "2. 给出推荐方案\n"
-                    + "3. 列出下一步行动 (JSON 数组, 每项 {action, target, detail})\n"
+                    + "3. 在末尾给出下一步行动: 一个 JSON 数组, 只含可执行的 file.write 步骤,\n"
+                    + "   格式 [{\"action\":\"file.write\",\"path\":\"文件名\",\"content\":\"完整文件内容\"}]。\n"
+                    + "   content 必须是文件的完整最终内容 (不是内容描述); 不要产出图片等二进制文件;\n"
+                    + "   小游戏/网页类需求直接产出一个可运行的单文件 HTML。\n"
                     + "用中文回答。";
 
             AiClient summarizer = new AiClient(defaultModel, summaryPrompt);
             AiClient.AiResponse summaryResp = summarizer.chat(
                     councilContext.toString()
                     + "\n请总结并给出下一步行动计划。"
-                    + "\n下一步行动请用 JSON 数组格式: [{\"action\":\"file.write\",\"target\":\"文件名\",\"detail\":\"内容描述\"}]");
+                    + "\n下一步行动只输出可执行的 file.write JSON 数组 (content 为完整文件内容):"
+                    + " [{\"action\":\"file.write\",\"path\":\"文件名\",\"content\":\"完整文件内容\"}]");
 
             if (summaryResp.success) {
                 try {

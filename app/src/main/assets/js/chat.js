@@ -229,6 +229,8 @@ function executeCouncilSteps(id,steps,gen){
     }
     var step=steps[i];i++;
     var t0=Date.now();
+    /* 单步异常不中断整体: 记错误节点后继续 (修复: 步骤格式不兼容曾致执行静默卡死) */
+    try{
     /* 字符串步骤 → 当作设备指令/AI 提示; 对象步骤 → 按 action 分发 */
     if(typeof step==='string'){
       var out=B.cmd(step);
@@ -238,8 +240,10 @@ function executeCouncilSteps(id,steps,gen){
       setTimeout(next,300);
     }else if(step.action==='file.write'){
           /* P1: AI 写文件前强制预览，用户确认才落盘 (CONTRACT_ARCH §5) */
-          var fpath=step.args.path||'untitled';
-          var fcontent=step.args.content||'';
+          /* 兼容两种步骤格式: {action,args:{path,content}} 与 {action,target|path,detail|content} (Council 汇总提示词产出) */
+          var sargs=step.args||step;
+          var fpath=sargs.path||sargs.target||'untitled';
+          var fcontent=sargs.content||sargs.detail||'';
           var card=document.createElement('div');card.className='msg wide';
           var wrap=document.createElement('div');wrap.className='deliver-card';
           wrap.style.borderLeftColor='var(--acc-line)';
@@ -285,7 +289,12 @@ function executeCouncilSteps(id,steps,gen){
       var out2=B.cmd(cmdText);
       var dur3=((Date.now()-t0)/1000).toFixed(2)+'s';
       var ok2=out2.indexOf('❌')!==0&&out2.indexOf('⚠')!==0;
-      push(id,toolNode(step.action,JSON.stringify(step.args||{}),dur3,esc(out2)+'\n<span class="'+(ok2?'ok-line':'err-line')+'">'+(ok2?'exit 0':'exit 1')+'</span>'));
+      push(id,toolNode(step.action,JSON.stringify(step.args||step),dur3,esc(out2)+'\n<span class="'+(ok2?'ok-line':'err-line')+'">'+(ok2?'exit 0':'exit 1')+'</span>'));
+      setTimeout(next,300);
+    }
+    }catch(stepErr){
+      /* 步骤格式不符/字段缺失等异常: 记录后继续后续步骤, 不再静默卡死 */
+      push(id,toolNode('exec',(step&&step.action)||'step','0s',esc('步骤异常: '+((stepErr&&stepErr.message)||stepErr))+'\n<span class="err-line">exit 1</span>'));
       setTimeout(next,300);
     }
   }
