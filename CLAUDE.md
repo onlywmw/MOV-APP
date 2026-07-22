@@ -63,9 +63,13 @@ MOVActivity (WebView 壳)
 
 | 优先级 | 事项 |
 |--------|------|
-| 🔴 | 文件上传修复 (见 docs/DESIGN_SECURITY.md) |
-| 🔴 | 文件预览修复 |
-| 🔴 | _filesPath 重置 |
-| 🔵 | 看板 tab 实现 (见 docs/DESIGN_BOARD_V2.md) |
-| 🔵 | 技能 tab 合并到运行 |
-| 🔵 | 多模型管理 |
+| ✅ | 看板 tab 实现 (v2.0 悬浮切换) |
+| ✅ | 技能合并到运行页 |
+| ✅ | 多模型管理 (ModelRegistry + Council) |
+| ✅ | 运行页个人信息 + 精简 (DESIGN_OPTIMIZE §1) |
+| ✅ | i18n 旧名字清理 |
+| ✅ | 安全加固 (allowBackup/false + 加密警告 + 文件大小限制) |
+| 🔵 | SQLite 存储升级 (DESIGN_SQLITE.md, draft) |
+| 🔵 | 伪流式 Council (DESIGN_HYBRID.md) |
+| 🔵 | 遥测移除 (StatsCollector) |
+| 🔵 | 看板应用内容填充 (音乐/阅读/健身/笔记) |

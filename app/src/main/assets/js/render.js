@@ -31,13 +31,13 @@ function safeBubble(html){
 }
 
 /* ---------- 房间列表渲染 · Apple grouped ---------- */
-function avstack(r){var s='<span class="avstack">';r.members.forEach(function(m){var a=AV[m]||AV.hermes;s+='<i style="background:'+a[1]+'">'+a[0]+'</i>';});return s+'</span>';}
+function avstack(r){var s='<span class="avstack">';var ms=Array.isArray(r.members)?r.members:(r.members&&r.members.ai?r.members.ai:[]);ms.forEach(function(m){var a=AV[m]||AV.mov;s+='<i style="background:'+a[1]+'">'+a[0]+'</i>';});return s+'</span>';}
 function roomCard(r){
   var bc=PHASE_BADGE[r.phase]||'off';
   return '<div class="room" data-room="'+r.id+'">'
     +'<span class="udot'+(r.unread?' show':'')+'"></span>'
     +'<div class="r1">'+avstack(r)+'<b>'+esc(r.name)+'</b><time>'+esc(r.time)+'</time></div>'
-    +'<div class="r2"><span class="mini-tag '+(r.mode==='council'?'council':'')+'">'+(r.mode==='council'?'council · '+r.members.length+' AI':'单聊 · hermes')+'</span><span class="badge '+bc+'"><span class="dot"></span>'+esc(r.phase)+'</span></div>'
+    +'<div class="r2"><span class="mini-tag '+(r.mode==='council'?'council':'')+'">'+(r.mode==='council'?'council · '+(roomAiMembers(r).length||'?')+' AI':'单聊 · mov')+'</span><span class="badge '+bc+'"><span class="dot"></span>'+esc(r.phase)+'</span></div>'
     +'<div class="r3">'+esc(r.last)+'</div></div>';
 }
 function renderRooms(){
@@ -141,7 +141,7 @@ function mkMsg(m){
     if(th){th.addEventListener('click',function(){d.querySelector('.toolcall').classList.toggle('open');});}
     d._md=m;return d;
   }
-  var me=m.me,a=AV[m.who]||AV.hermes;
+  var me=m.me,a=AV[m.who]||AV.mov;
   d.className='msg '+(me?'user':'agent');
   var role=m.role?' <span class="role">'+esc(m.role)+'</span>':'';
   /* P0-3: who 行用 esc，气泡用 safeBubble */

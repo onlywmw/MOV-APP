@@ -5,12 +5,12 @@
    ============================================================ */
 var STORE_KEY='hermes_rooms_v2';
 var DEFAULT_ROOMS=[
-  {id:'desk',name:'设备控制 · 单聊',mode:'single',members:['hermes'],phase:'已交付',last:'手电筒 / 电量 / 音量 / 亮度 / 震动 / 截屏… 直接下达指令',time:'现在',unread:0,played:false,
-   seed:[{t:'sys',h:'SINGLE · mov-agent 在线 · 30+ 原生能力就绪'},{t:'agent',who:'hermes',h:'我是 MOV。直接下达设备指令即可执行, 例如: <code>打开手电筒</code> · <code>电量多少</code> · <code>最大音量</code> · <code>亮度调高</code> · <code>震动</code> · <code>截屏</code>。非指令类问题会转交 AI 回答(右上角 ≡ 可配置 API)。'}]},
-  {id:'fit',name:'健身 APP · 设计提案',mode:'council',members:['claude','gpt-5','gemini'],phase:'讨论中',last:'claude: 看了参考图——密度太高,照抄必死',time:'现在',unread:0,played:false,
-   seed:[{t:'sys',h:'COUNCIL 已召开 · claude / gpt-5 / gemini · 主持 hermes'},{t:'agent',who:'YOU',me:true,h:'设计一个健身 APP, 参考这张首页布局, 讨论一下再动手。',att:'img'}]},
-  {id:'hainan',name:'HAINAN.WANG · 部署',mode:'single',members:['hermes'],phase:'执行中',last:'EdgeOne 构建巡检通过, 证书链校验中',time:'2h',unread:1,played:false,
-   seed:[{t:'agent',who:'hermes',h:'正在腾讯云 EdgeOne 执行部署巡检, 完成后回报。'}]}
+  {id:'desk',name:'设备控制 · 单聊',mode:'single',members:['mov'],phase:'已交付',last:'手电筒 / 电量 / 音量 / 亮度 / 震动 / 截屏… 直接下达指令',time:'现在',unread:0,played:false,
+   seed:[{t:'sys',h:'SINGLE · mov-agent 在线 · 30+ 原生能力就绪'},{t:'agent',who:'mov',h:'我是 MOV。直接下达设备指令即可执行, 例如: <code>打开手电筒</code> · <code>电量多少</code> · <code>最大音量</code> · <code>亮度调高</code> · <code>震动</code> · <code>截屏</code>。非指令类问题会转交 AI 回答(右上角 ≡ 可配置 API)。'}]},
+  {id:'fit',name:'健身 APP · 设计提案',mode:'council',members:{human:[{who:'you',role:'owner'}],ai:[]},phase:'讨论中',last:'多模型各抒己见 → 汇总 → MOV 执行',time:'现在',unread:0,played:false,
+   seed:[{t:'sys',h:'COUNCIL 已召开 · 多模型 AI 团队 · MOV 主持'},{t:'agent',who:'mov',h:'设计一个健身 APP 的话, 先告诉我你的目标用户和核心需求——我会拉 AI 团队一起讨论方案。'}]},
+  {id:'hainan',name:'HAINAN.WANG · 部署',mode:'single',members:['mov'],phase:'执行中',last:'EdgeOne 构建巡检通过, 证书链校验中',time:'2h',unread:1,played:false,
+   seed:[{t:'agent',who:'mov',h:'正在腾讯云 EdgeOne 执行部署巡检, 完成后回报。'}]}
 ];
 var ROOMS;
 try{

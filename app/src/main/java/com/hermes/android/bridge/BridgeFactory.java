@@ -94,6 +94,7 @@ public class BridgeFactory {
     @JavascriptInterface public String deleteModel(String id) { return model.deleteModel(id); }
     @JavascriptInterface public String setDefaultModel(String id) { return model.setDefaultModel(id); }
     @JavascriptInterface public String testModel(String json) { return model.testModel(json); }
+    @JavascriptInterface public String getEncStatus() { return model.getEncStatus(); }
 
     // ==================== 基础 ====================
     @JavascriptInterface

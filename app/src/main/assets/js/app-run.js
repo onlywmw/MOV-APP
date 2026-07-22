@@ -31,10 +31,16 @@ $('rowSkills').addEventListener('click',function(){openRunDetail('skills');});
 $('runDetailClose').addEventListener('click',closeRunDetail);
 $('runDetailMask').addEventListener('click',closeRunDetail);
 
-/* 开发者指标折叠 (DESIGN_POLISH #4) */
-$('devToggle').addEventListener('click',function(){
+/* 开发者指标折叠 (DESIGN_OPTIMIZE §1) */
+$('ssDevToggle').addEventListener('click',function(){
   var m=$('devMetrics');
   var open=m.style.display!=='none';
   m.style.display=open?'none':'';
-  this.textContent=(open?'▸':'▾')+' 开发者信息';
+  this.textContent=open?'▸':'▾';
+});
+
+/* 个人信息设置入口 */
+$('btnPersonalSettings').addEventListener('click',function(){
+  B.openSettings();
+  ev('从运行页打开设置');
 });

@@ -436,8 +436,13 @@ public class StorageManager {
 
     // ==================== 房间文件操作 (BridgeFile 用) ====================
 
+    private static final int MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
     public String writeFile(String roomId, String path, String content) {
         try {
+            if (content != null && content.length() > MAX_FILE_SIZE) {
+                return errJson("文件过大 (>" + (MAX_FILE_SIZE / 1024 / 1024) + "MB)");
+            }
             File base = new File(baseDir, "rooms/" + roomId);
             File target = new File(base, path);
             if (!isSafe(base, target)) return errJson("路径越界");

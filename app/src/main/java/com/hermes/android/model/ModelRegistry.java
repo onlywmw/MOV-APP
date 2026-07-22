@@ -27,6 +27,7 @@ public class ModelRegistry {
     private static final String KEY_MODELS = "models";
 
     private final SharedPreferences prefs;
+    private final boolean encrypted;
     private final List<ModelConfig> models = new ArrayList<>();
 
     public ModelRegistry(Context context) {
@@ -44,6 +45,7 @@ public class ModelRegistry {
         }
         prefs = encrypted != null ? encrypted
                 : context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.encrypted = (encrypted != null);
         load();
         if (models.isEmpty()) {
             migrateFromLegacy(context);
@@ -154,6 +156,9 @@ public class ModelRegistry {
             return "[]";
         }
     }
+
+    /** 加密存储是否可用 (降级明文时弹警告) */
+    public boolean isEncrypted() { return encrypted; }
 
     /* ── 持久化 ── */
 

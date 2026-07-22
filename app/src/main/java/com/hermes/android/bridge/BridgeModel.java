@@ -52,6 +52,10 @@ public class BridgeModel extends BaseBridge {
         return "{\"ok\":" + ok + "}";
     }
 
+    public String getEncStatus() {
+        return "{\"ok\":" + registry.isEncrypted() + "}";
+    }
+
     public String testModel(String json) {
         try {
             ModelConfig mc = ModelConfig.fromJson(new JSONObject(json));

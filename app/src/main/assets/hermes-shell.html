@@ -101,7 +101,7 @@
 
     <!-- 看板 tab (v2: 悬浮切换) -->
     <div class="view" id="view-board">
-      <iframe id="boardFrame" src="" style="position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff;"></iframe>
+      <iframe id="boardFrame" src="" sandbox="allow-scripts allow-same-origin" style="position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff;"></iframe>
       <div class="board-trigger hidden" id="boardTrigger">
         <span class="bt-icon" id="boardTriggerIcon">音</span>
         <span id="boardTriggerName">音乐</span>
@@ -124,17 +124,27 @@
       </div>
     </div>
 
-    <!-- 运行 tab (v3: 瘦身 + 合并 Cron) -->
+    <!-- 运行 tab (v3: 个人信息 + 精简 + 合并 Cron) -->
     <div class="view" id="view-run">
       <div class="abar"><div><h4 data-i18n="rt.title">运行</h4><div class="sub" id="runSub" data-i18n="rt.sub">原生能力引擎</div></div><span class="grow"></span><span class="ico-btn" id="btnRunRefresh">⟳</span></div>
+      <!-- 个人信息 (DESIGN_OPTIMIZE §1) -->
+      <div class="personal-row" id="personalRow">
+        <span class="pr-avatar" id="prAvatar">●</span>
+        <span class="pr-name" id="prName">本地用户</span>
+        <span class="grow"></span>
+        <span class="ico-btn" id="btnPersonalSettings" title="设置">≡</span>
+      </div>
       <div class="sbody">
-        <!-- AGENT 卡片 (含通道/权限/技能) -->
-        <div class="proc-card">
-          <div class="head"><span class="pdot"></span>mov-agent · ANDROID</div>
-          <div class="proc-line"><span data-i18n="rt.uptime">运行时长</span> <span class="val" id="rtUptime">--</span></div>
-          <!-- 开发者指标 (默认折叠) -->
-          <div class="dev-toggle" id="devToggle" style="font-size:10px;color:var(--ink-4);cursor:pointer;margin:4px 0">▸ 开发者信息</div>
-          <div id="devMetrics" style="display:none">
+        <!-- 状态条: MOV 运行正常 · 已运行 Xh Xm -->
+        <div class="status-strip" id="statusStrip">
+          <span class="ss-dot" id="ssDot"></span>
+          <span id="ssText">MOV 运行正常</span>
+          <span class="ss-uptime" id="ssUptime">--</span>
+          <span class="ss-dev" id="ssDevToggle">▸</span>
+        </div>
+        <!-- 开发者指标 (默认折叠, DESIGN_OPTIMIZE §1: 点到设置→关于可见) -->
+        <div id="devMetrics" style="display:none">
+          <div class="proc-card">
             <div class="proc-line">$ pid <b id="rtPid">--</b></div>
             <div class="proc-meters">
               <div class="m"><b id="rtMem">--<i> MB</i></b><span data-i18n="rt.mem">JVM 内存</span><div class="bar"><i id="rtMemBar" style="width:0%"></i></div></div>
@@ -142,21 +152,23 @@
             </div>
             <div class="proc-line" style="margin-top:4px"><span data-i18n="rt.lastCmd">最近指令</span> <b id="rtLastCmdName">--</b> · <span class="val" id="rtLastCmd">--</span> ms</div>
           </div>
-          <!-- 三行入口: 点击进入详情 -->
-          <div class="proc-row" id="rowChannels">
-            <span class="pr-label" data-i18n="rt.channels">通道</span>
-            <span class="pr-val" id="chanSummary">--</span>
-            <span class="pr-arrow">›</span>
+        </div>
+        <!-- 三行入口: 点击进入详情 -->
+        <div class="triple-row">
+          <div class="t-row" id="rowChannels">
+            <span class="t-label" data-i18n="rt.channels">通道</span>
+            <span class="t-val" id="chanSummary">--</span>
+            <span class="t-arrow">›</span>
           </div>
-          <div class="proc-row" id="rowPerms">
-            <span class="pr-label" data-i18n="rt.perms2">权限</span>
-            <span class="pr-val" id="permSummary">--</span>
-            <span class="pr-arrow">›</span>
+          <div class="t-row" id="rowSkills">
+            <span class="t-label" data-i18n="skill.title">技能</span>
+            <span class="t-val" id="skillSummary">--</span>
+            <span class="t-arrow">›</span>
           </div>
-          <div class="proc-row" id="rowSkills">
-            <span class="pr-label" data-i18n="skill.title">技能</span>
-            <span class="pr-val" id="skillSummary">--</span>
-            <span class="pr-arrow">›</span>
+          <div class="t-row" id="rowPerms">
+            <span class="t-label" data-i18n="rt.perms2">权限</span>
+            <span class="t-val" id="permSummary">--</span>
+            <span class="t-arrow">›</span>
           </div>
         </div>
 

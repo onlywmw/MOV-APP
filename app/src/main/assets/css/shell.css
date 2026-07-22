@@ -285,12 +285,29 @@ button,input,textarea{font-family:inherit;}
 .proc-meters .m span{font-size:8.5px;color:#8E8E93;letter-spacing:.08em;}
 .proc-meters .m .bar{height:3px;background:#3A3A3C;border-radius:2px;margin-top:5px;overflow:hidden;}
 .proc-meters .m .bar i{display:block;height:100%;background:var(--acc-live);border-radius:2px;animation:nodepulse 2.4s infinite;}
-/* 暗色卡片内部: 三行可点击入口 */
+/* 暗色卡片内部: 三行可点击入口 (旧, 保留兼容) */
 .proc-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 12px;background:#2C2C2E;border-radius:10px;cursor:pointer;transition:background var(--t-fast),transform var(--t-fast);}
 .proc-row:active{background:#3A3A3C;transform:scale(.985);}
 .proc-row .pr-label{font-size:11px;font-weight:600;color:#E5E5EA;flex:none;}
 .proc-row .pr-val{font-family:var(--font-mono);font-size:10px;color:#8E8E93;flex:1;text-align:right;}
 .proc-row .pr-arrow{font-size:15px;color:#636366;flex:none;}
+/* 个人信息行 (DESIGN_OPTIMIZE §1) */
+.personal-row{flex:none;display:flex;align-items:center;gap:10px;padding:10px 20px 6px;background:var(--bg);}
+.personal-row .pr-avatar{width:28px;height:28px;border-radius:50%;background:var(--acc-live);display:grid;place-items:center;font-size:8px;color:#fff;flex:none;}
+.personal-row .pr-name{font-family:var(--font-sans);font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--ink-1);}
+/* 状态条 (精简进程信息) */
+.status-strip{flex:none;display:flex;align-items:center;gap:8px;margin:0 16px 4px;padding:8px 14px;background:var(--panel);border-radius:var(--r-md);font-family:var(--font-sans);font-size:11.5px;color:var(--ink-3);box-shadow:var(--sh-1);}
+.status-strip .ss-dot{width:7px;height:7px;border-radius:50%;background:var(--ok-dot);flex:none;animation:nodepulse 2s infinite;}
+.status-strip .ss-uptime{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--ink-4);}
+.status-strip .ss-dev{font-family:var(--font-mono);font-size:9px;color:var(--ink-4);cursor:pointer;padding:2px 4px;}
+/* 三行入口 (独立卡片, 浅色背景) */
+.triple-row{margin:4px 16px 8px;background:var(--panel);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1);}
+.t-row{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background var(--t-fast);}
+.t-row+.t-row{border-top:1px solid var(--line-soft);}
+.t-row:active{background:var(--panel-2);}
+.t-row .t-label{font-family:var(--font-sans);font-size:12px;font-weight:600;color:var(--ink-2);flex:none;}
+.t-row .t-val{font-family:var(--font-mono);font-size:10px;color:var(--ink-4);flex:1;text-align:right;}
+.t-row .t-arrow{font-size:15px;color:var(--ink-4);flex:none;}
 /* 详情弹层内容 */
 .rd-list{display:flex;flex-direction:column;gap:8px;}
 .rd-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel-2);border-radius:var(--r-md);transition:transform var(--t-fast);}

@@ -262,7 +262,7 @@ public class CapabilityExecutor {
                 memProc.waitFor();
             } catch (Exception ignored) {
             } finally {
-                if (memProc != null) memProc.destroy();
+                if (memProc != null) { memProc.destroy(); }
             }
 
             return CommandResult.ok(sb.toString().trim());
@@ -761,11 +761,14 @@ public class CapabilityExecutor {
         }
     }
 
+    private static final int MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
+
     private CommandResult doFileWrite(ParsedCommand cmd) {
         String roomId = cmd.getStringArg("roomId", "");
         String path = cmd.getStringArg("path", "");
         String content = cmd.getStringArg("content", "");
         if (roomId.isEmpty() || path.isEmpty()) return CommandResult.fail("需要 roomId 和 path");
+        if (content.length() > MAX_FILE_BYTES) return CommandResult.fail("文件过大 (>" + (MAX_FILE_BYTES / 1024 / 1024) + "MB)");
         try {
             java.io.File base = new java.io.File(getRoomsBase(), roomId);
             java.io.File target = new java.io.File(base, path);

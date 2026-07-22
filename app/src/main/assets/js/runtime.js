@@ -39,12 +39,15 @@ function refreshHealth(){
   $('healthSub').textContent=sub;
 }
 
-/* ---------- PROCESS ---------- */
-/* ---------- PROCESS (DESIGN_POLISH #4: 开发者指标下沉) ---------- */
+/* ---------- PROCESS (DESIGN_OPTIMIZE §1: 精简 + 个人信息) ---------- */
 function refreshProcess(){
   var s=B.runtimeStats();
-  /* 首屏: 运行时长 (用户看得懂) */
-  if(s.uptimeMs!=null)$('rtUptime').textContent=formatUptime(s.uptimeMs);
+  /* 状态条: MOV 运行正常 · 已运行 Xh Xm */
+  if(s.uptimeMs!=null){
+    $('ssUptime').textContent=formatUptime(s.uptimeMs);
+    $('ssText').textContent='MOV 运行正常';
+    $('ssDot').style.background='var(--ok-dot)';
+  }
   /* 折叠区: pid / 内存 / 指令计数 (开发者信息) */
   if(s.pid!=null)$('rtPid').textContent=s.pid;
   if(s.memUsedMb!=null&&s.memMaxMb!=null){
@@ -60,6 +63,19 @@ function refreshProcess(){
   if(s.lastCmdMs!=null)$('rtLastCmd').textContent=s.lastCmdMs;
   if(s.lastCmdName!=null)$('rtLastCmdName').textContent=s.lastCmdName||'--';
   $('runSub').textContent=t('rt.sub');
+  /* 渲染个人信息 */
+  renderPersonalRow();
+}
+
+/* 个人信息: 默认显示"本地用户", 颜色用金色 */
+function renderPersonalRow(){
+  var avatar=$('prAvatar');
+  if(avatar){
+    avatar.style.background='var(--acc-live)';
+    avatar.textContent='●';
+  }
+  var name=$('prName');
+  if(name)name.textContent='王墨微 · 本地用户';
 }
 
 function formatUptime(ms){

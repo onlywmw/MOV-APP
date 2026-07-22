@@ -383,3 +383,10 @@ renderRooms();
 setTab('chat');
 setTimeout(function(){refreshRuntime();},600);
 ev('MOV v3.0 '+t('ready')+(B.present?' · '+t('bridge.on'):' · '+t('bridge.off')));
+  /* 加密状态检查: 降级明文时弹 toast */
+  if(B.present){
+    var enc=B.encStatus();
+    if(enc&&!enc.ok){
+      setTimeout(function(){B.toast('⚠ 加密存储不可用, API Key 以明文存储');}, 2000);
+    }
+  }

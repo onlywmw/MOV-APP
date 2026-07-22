@@ -40,7 +40,7 @@ async function runDeviceCommand(id,text){
   var gen=genCounter;
   var alive=function(){return genCounter===gen&&curRoomId===id;};
   var t0=Date.now();
-  var typing=mkMsg({t:'agent',who:'hermes',caret:true});
+  var typing=mkMsg({t:'agent',who:'mov',caret:true});
   showTyping(id,typing);
   var out=B.cmd(text);
   killTyping(typing);
@@ -48,7 +48,7 @@ async function runDeviceCommand(id,text){
   var dur=((Date.now()-t0)/1000).toFixed(2)+'s';
   var ok=out.indexOf('❌')!==0&&out.indexOf('⚠')!==0;
   push(id,toolNode('device',text,dur,esc(out)+'\n<span class="'+(ok?'ok-line':'err-line')+'">'+(ok?'exit 0':'exit 1')+'</span>'));
-  push(id,mkMsg({t:'agent',who:'hermes',h:esc(out)}));
+  push(id,mkMsg({t:'agent',who:'mov',h:esc(out)}));
   var room=ROOMS.find(function(r){return r.id===id;});
   if(room){room.last=out.length>32?out.slice(0,32)+'…':out;room.time='现在';renderRooms();persistRooms();}
   ev('执行设备指令: '+text+' → '+(ok?'OK':'FAIL'));
@@ -58,13 +58,13 @@ async function runDeviceCommand(id,text){
 function runAiChat(id,text){
   var gen=genCounter;
   var alive=function(){return genCounter===gen&&curRoomId===id;};
-  var typing=mkMsg({t:'agent',who:'hermes',caret:true});
+  var typing=mkMsg({t:'agent',who:'mov',caret:true});
   showTyping(id,typing);
   B.aiAsync(text,function(resp){
     killTyping(typing);
     if(!alive())return;
     var content=resp.ok?resp.content:resp.content;
-    push(id,mkMsg({t:'agent',who:'hermes',h:esc(content)}));
+    push(id,mkMsg({t:'agent',who:'mov',h:esc(content)}));
     var room=ROOMS.find(function(r){return r.id===id;});
     if(room){room.last=(content||'').replace(/\n/g,' ').slice(0,32);room.time='现在';renderRooms();persistRooms();}
   });
@@ -79,9 +79,9 @@ function routeMessage(id,text){
     if(info.enabled&&info.configured){
       runAiChat(id,text);
     }else if(!info.enabled){
-      push(id,mkMsg({t:'agent',who:'hermes',h:'「'+esc(text)+'」不是设备指令, 且 AI 已关闭。点右上角 <code>≡</code> 可启用并配置 API。'}));
+      push(id,mkMsg({t:'agent',who:'mov',h:'「'+esc(text)+'」不是设备指令, 且 AI 已关闭。点右上角 <code>≡</code> 可启用并配置 API。'}));
     }else{
-      push(id,mkMsg({t:'agent',who:'hermes',h:'「'+esc(text)+'」不是设备指令。AI 尚未配置 API Key —— 点右上角 <code>≡</code> 设置后即可畅聊。输入 <code>帮助</code> 查看全部设备指令。'}));
+      push(id,mkMsg({t:'agent',who:'mov',h:'「'+esc(text)+'」不是设备指令。AI 尚未配置 API Key —— 点右上角 <code>≡</code> 设置后即可畅聊。输入 <code>帮助</code> 查看全部设备指令。'}));
     }
   }
 }
