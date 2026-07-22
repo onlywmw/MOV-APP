@@ -60,11 +60,23 @@ public class CronManager {
     /** 创建任务 */
     public String createJob(String name, String cronExpr, String command) {
         try {
+            // P2: 创建时校验指令白名单, 不支持直接拒绝
+            com.hermes.android.ParsedCommand cmd = new com.hermes.android.IntentParser().parse(command);
+            if (cmd == null || cmd.isError() || !CronPolicy.isAllowed(cmd.getCapability())) {
+                return "{\"ok\":false,\"error\":\"该指令不支持定时执行\"}";
+            }
+
+            // P2: 解析 cron, 计算下次触发时间 (非法表达式直接报错, 不再静默回落 1440)
+            CronScheduler.Plan plan;
+            try {
+                plan = CronScheduler.plan(cronExpr, System.currentTimeMillis());
+            } catch (IllegalArgumentException e) {
+                return new JSONObject().put("ok", false).put("error", e.getMessage()).toString();
+            }
+
             JSONArray jobs = loadJobs();
 
             String jobId = UUID.randomUUID().toString().substring(0, 8);
-            long intervalMinutes = parseCronToMinutes(cronExpr);
-            long actualInterval = Math.max(15, intervalMinutes); // WorkManager 最小周期 15 分钟
 
             JSONObject job = new JSONObject();
             job.put("id", jobId);
@@ -72,7 +84,7 @@ public class CronManager {
             job.put("cron", cronExpr);
             job.put("command", command);
             job.put("enabled", true);
-            job.put("intervalMin", actualInterval);
+            job.put("intervalMin", plan.intervalMinutes);
             job.put("lastRun", "");
             job.put("lastStatus", "");
             job.put("createdAt", System.currentTimeMillis());
@@ -81,14 +93,14 @@ public class CronManager {
             saveJobs(jobs);
 
             // 注册 WorkManager
-            scheduleWork(jobId, actualInterval);
+            scheduleWork(jobId, plan.intervalMinutes, plan.initialDelayMinutes);
 
             JSONObject result = new JSONObject();
             result.put("ok", true);
             result.put("id", jobId);
-            result.put("intervalMin", actualInterval);
-            if (actualInterval != intervalMinutes) {
-                result.put("notice", "WorkManager 最小周期为 15 分钟, 已自动调整为 " + actualInterval + " 分钟");
+            result.put("intervalMin", plan.intervalMinutes);
+            if (plan.notice != null) {
+                result.put("notice", plan.notice);
             }
             return result.toString();
         } catch (Exception e) {
@@ -106,7 +118,14 @@ public class CronManager {
                     job.put("enabled", enabled);
                     saveJobs(jobs);
                     if (enabled) {
-                        scheduleWork(jobId, job.getLong("intervalMin"));
+                        // P2: 重新启用时按 cron 重算下次触发时间
+                        long delay = 0;
+                        try {
+                            delay = CronScheduler.plan(
+                                    job.getString("cron"), System.currentTimeMillis())
+                                    .initialDelayMinutes;
+                        } catch (IllegalArgumentException ignored) {}
+                        scheduleWork(jobId, job.getLong("intervalMin"), delay);
                     } else {
                         WorkManager.getInstance(context).cancelUniqueWork("hermes_cron_" + jobId);
                     }
@@ -139,7 +158,7 @@ public class CronManager {
     }
 
     /** 注册 WorkManager 周期任务 */
-    private void scheduleWork(String jobId, long intervalMinutes) {
+    private void scheduleWork(String jobId, long intervalMinutes, long initialDelayMinutes) {
         // WorkManager 最小周期 15 分钟
         long interval = Math.max(15, intervalMinutes);
 
@@ -149,44 +168,22 @@ public class CronManager {
 
         PeriodicWorkRequest work = new PeriodicWorkRequest.Builder(
                 HermesCronWorker.class, interval, TimeUnit.MINUTES)
+                // P2: 按 cron 表达式计算下次触发时间作为 initialDelay
+                .setInitialDelay(Math.max(0, initialDelayMinutes), TimeUnit.MINUTES)
                 .setConstraints(constraints)
                 .addTag("hermes_cron")
                 .addTag("job_" + jobId)
                 .build();
 
+        String uniqueName = "hermes_cron_" + jobId;
+        // P2: UPDATE 策略会保留旧调度, 先取消再入队, 保证新的 initialDelay 生效
+        WorkManager.getInstance(context).cancelUniqueWork(uniqueName);
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "hermes_cron_" + jobId,
+                uniqueName,
                 ExistingPeriodicWorkPolicy.UPDATE,
                 work);
 
-        Log.i(TAG, "scheduled cron job " + jobId + " every " + interval + "min");
-    }
-
-    /**
-     * 简易 cron 表达式转分钟间隔。
-     * 支持: "30 8 * * *" (每天), "0 星号/6 * * *" (每6小时),
-     *       "星号/30 * * * *" (每30分钟)
-     */
-    private long parseCronToMinutes(String cron) {
-        try {
-            String[] parts = cron.trim().split("\\s+");
-            if (parts.length < 5) return 1440; // 默认每天
-
-            String minute = parts[0];
-            String hour = parts[1];
-
-            // */N 分钟
-            if (minute.startsWith("*/")) {
-                return Long.parseLong(minute.substring(2));
-            }
-            // */N 小时
-            if (hour.startsWith("*/")) {
-                return Long.parseLong(hour.substring(2)) * 60;
-            }
-            // 固定时间 → 每天
-            return 1440;
-        } catch (Exception e) {
-            return 1440;
-        }
+        Log.i(TAG, "scheduled cron job " + jobId + " every " + interval
+                + "min, first in " + Math.max(0, initialDelayMinutes) + "min");
     }
 }

@@ -35,15 +35,11 @@ public class CapabilityExecutor {
     private boolean torchOn = false;
 
     /** P0-1: Scoped Storage 路径，由 init(Context) 注入 */
-    private File roomsBase;
     private File externalBase;
 
     /** 必须在使用前调用，注入 Context 获取正确路径 */
     public void init(Context ctx) {
-        File ext = ctx.getExternalFilesDir(null);
-        this.externalBase = ext;
-        this.roomsBase = new File(ext, "mov/rooms");
-        this.roomsBase.mkdirs();
+        this.externalBase = ctx.getExternalFilesDir(null);
     }
 
     /* 运行统计: 进程级命令计数 (RUNTIME 页真数据) */
@@ -111,11 +107,6 @@ public class CapabilityExecutor {
             case "network.info":  return doNetworkInfo();
             case "process.list":  return doProcessList();
             case "file.ls":       return doFileLs(cmd.getStringArg("path", "/sdcard/"));
-            case "file.write":    return doFileWrite(cmd);
-            case "file.read":     return doFileRead(cmd);
-            case "file.delete":   return doFileDelete(cmd);
-            case "file.mkdir":    return doFileMkdir(cmd);
-            case "http.get":      return doHttpGet(cmd);
             default:
                 return CommandResult.fail("未知能力: " + cmd.getCapability());
         }
@@ -743,136 +734,5 @@ public class CapabilityExecutor {
         if (bytes < 1024 * 1024) return String.format(Locale.getDefault(), "%.1fKB", bytes / 1024.0);
         if (bytes < 1024 * 1024 * 1024) return String.format(Locale.getDefault(), "%.1fMB", bytes / 1024.0 / 1024.0);
         return String.format(Locale.getDefault(), "%.1fGB", bytes / 1024.0 / 1024.0 / 1024.0);
-    }
-
-    // ==================== ROOM FILE OPS ====================
-    /** P0-1: 路径从 init() 注入的 roomsBase 获取 */
-    private File getRoomsBase() {
-        if (roomsBase == null) throw new IllegalStateException("CapabilityExecutor.init() not called");
-        return roomsBase;
-    }
-
-    /** 路径逃逸检查: target 必须在 base 内 */
-    private boolean isPathSafe(java.io.File base, java.io.File target) {
-        try {
-            String basePath = base.getCanonicalFile().getPath();
-            String targetPath = target.getCanonicalFile().getPath();
-            return targetPath.equals(basePath)
-                    || targetPath.startsWith(basePath + java.io.File.separator);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static final int MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
-
-    private CommandResult doFileWrite(ParsedCommand cmd) {
-        String roomId = cmd.getStringArg("roomId", "");
-        String path = cmd.getStringArg("path", "");
-        String content = cmd.getStringArg("content", "");
-        if (roomId.isEmpty() || path.isEmpty()) return CommandResult.fail("需要 roomId 和 path");
-        if (content.length() > MAX_FILE_BYTES) return CommandResult.fail("文件过大 (>" + (MAX_FILE_BYTES / 1024 / 1024) + "MB)");
-        try {
-            java.io.File base = new java.io.File(getRoomsBase(), roomId);
-            java.io.File target = new java.io.File(base, path);
-            if (!isPathSafe(base, target)) return CommandResult.fail("路径越界");
-            target.getParentFile().mkdirs();
-            try (java.io.FileWriter fw = new java.io.FileWriter(target)) {
-                fw.write(content);
-            }
-            return CommandResult.ok("已写入: " + path + " (" + target.length() + " bytes)");
-        } catch (Exception e) {
-            return CommandResult.fail("写入失败: " + e.getMessage());
-        }
-    }
-
-    private CommandResult doFileRead(ParsedCommand cmd) {
-        String roomId = cmd.getStringArg("roomId", "");
-        String path = cmd.getStringArg("path", "");
-        if (roomId.isEmpty() || path.isEmpty()) return CommandResult.fail("需要 roomId 和 path");
-        try {
-            java.io.File base = new java.io.File(getRoomsBase(), roomId);
-            java.io.File target = new java.io.File(base, path);
-            if (!isPathSafe(base, target)) return CommandResult.fail("路径越界");
-            if (!target.exists()) return CommandResult.fail("文件不存在: " + path);
-            if (target.length() > 100 * 1024) return CommandResult.fail("文件过大 (>100KB)");
-            String content = new String(java.nio.file.Files.readAllBytes(target.toPath()));
-            return CommandResult.ok(content);
-        } catch (Exception e) {
-            return CommandResult.fail("读取失败: " + e.getMessage());
-        }
-    }
-
-    private CommandResult doFileDelete(ParsedCommand cmd) {
-        String roomId = cmd.getStringArg("roomId", "");
-        String path = cmd.getStringArg("path", "");
-        if (roomId.isEmpty() || path.isEmpty()) return CommandResult.fail("需要 roomId 和 path");
-        try {
-            java.io.File base = new java.io.File(getRoomsBase(), roomId);
-            java.io.File target = new java.io.File(base, path);
-            if (!isPathSafe(base, target)) return CommandResult.fail("路径越界");
-            if (!target.exists()) return CommandResult.fail("文件不存在");
-            if (target.isDirectory()) return CommandResult.fail("不可删除目录");
-            target.delete();
-            return CommandResult.ok("已删除: " + path);
-        } catch (Exception e) {
-            return CommandResult.fail("删除失败: " + e.getMessage());
-        }
-    }
-
-    private CommandResult doFileMkdir(ParsedCommand cmd) {
-        String roomId = cmd.getStringArg("roomId", "");
-        String path = cmd.getStringArg("path", "");
-        if (roomId.isEmpty() || path.isEmpty()) return CommandResult.fail("需要 roomId 和 path");
-        try {
-            java.io.File base = new java.io.File(getRoomsBase(), roomId);
-            java.io.File target = new java.io.File(base, path);
-            if (!isPathSafe(base, target)) return CommandResult.fail("路径越界");
-            target.mkdirs();
-            return CommandResult.ok("已创建目录: " + path);
-        } catch (Exception e) {
-            return CommandResult.fail("创建目录失败: " + e.getMessage());
-        }
-    }
-
-    /** L3: HTTP GET 能力 — agent 执行管线可调用 */
-    private CommandResult doHttpGet(ParsedCommand cmd) {
-        String url = cmd.getStringArg("url", "");
-        if (url.isEmpty()) return CommandResult.fail("需要 url 参数");
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            return CommandResult.fail("url 必须以 http:// 或 https:// 开头");
-        }
-        java.net.HttpURLConnection conn = null;
-        try {
-            java.net.URL u = new java.net.URL(url);
-            conn = (java.net.HttpURLConnection) u.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(15000);
-            int code = conn.getResponseCode();
-            java.io.InputStream is = code >= 200 && code < 300
-                    ? conn.getInputStream() : conn.getErrorStream();
-            StringBuilder sb = new StringBuilder();
-            if (is != null) {
-                java.io.BufferedReader br = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8));
-                String line;
-                int lines = 0;
-                while ((line = br.readLine()) != null && lines < 200) {
-                    sb.append(line).append("\n");
-                    lines++;
-                }
-                br.close();
-            }
-            String body = sb.toString().trim();
-            if (body.length() > 4000) body = body.substring(0, 4000) + "\n…(截断)";
-            return CommandResult.ok("HTTP " + code + "\n" + body);
-        } catch (java.net.SocketTimeoutException e) {
-            return CommandResult.fail("请求超时: " + url);
-        } catch (Exception e) {
-            return CommandResult.fail("HTTP GET 失败: " + e.getMessage());
-        } finally {
-            if (conn != null) conn.disconnect();
-        }
     }
 }

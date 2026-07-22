@@ -51,15 +51,14 @@ Then:
   1. 返回错误 JSON: {"ok":false,"error":"内容过大 (>5MB)"}
 ```
 
-### TC-SEC05：Cron 执行白名单外的 action
+### TC-SEC05：Cron 白名单外的 action 被拒绝
 
 ```
-Given: Cron 任务配置 action="input.tap"
-When: Cron 触发
+Given: Cron 任务指令解析出 action="input.tap" 或 "file.write"
+When: 创建任务
 Then:
-  1. 不执行
-  2. 日志: "BLOCKED: Cron 不允许执行 input.tap (白名单外)"
-  3. 任务状态: FAIL
+  1. 返回 {"ok":false,"error":"该指令不支持定时执行"}, 任务不创建
+  2. 存量任务运行时兜底: 日志 "BLOCKED: Cron 不允许执行 ... (白名单外)", 状态 FAIL
 ```
 
 ### TC-SEC06：Cron 执行白名单内的 action
@@ -98,6 +97,6 @@ Then:
 
 1. **所有桥方法的路径参数必须通过 `BridgeValidator.checkPath()` 校验。** 禁止直接在桥方法中拼接路径。
 2. **所有桥方法的内容参数必须通过 `BridgeValidator.checkContent()` 校验。** 5MB 硬上限。
-3. **Cron 白名单硬编码在 `HermesCronWorker.ALLOWED_ACTIONS`。** 只允许查询类操作。修改白名单 = 改这个常量 + 更新本 CONTRACT 的 TC-SEC05/06。
+3. **Cron 白名单硬编码在 `cron/CronPolicy.ALLOWED_ACTIONS`。** 只允许查询类/轻量设备操作，且必须同时是 `IntentParser` 可产出的 capability（file.write/file.read/file.delete/file.mkdir/http.get 已随 P2 移除，对应不可达分支已删除）。创建任务时先过白名单校验，Worker 运行时保留兜底 BLOCKED。修改白名单 = 改这个常量 + 更新本 CONTRACT 的 TC-SEC05/06。
 4. **Widget receiver 必须声明 `android:permission`。** 且 `executeCommand()` 必须过白名单检查。
 5. **`render.js` 的 `mkMsg()` 必须用 `textContent` 设置用户输入文本。** 禁止 `innerHTML` 拼接用户输入。需要保留 `<code>` 标签时用 `createElement('code')` + `textContent`，不可拼接字符串。

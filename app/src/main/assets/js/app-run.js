@@ -11,15 +11,16 @@ $('btnCronCreate').addEventListener('click',function(){
   var text=$('cronInput').value.trim();
   if(!text){B.toast(t('rt.cronInput'));return;}
   var cron='0 8 * * *';
-  var m=text.match(/(\d{1,2}):(\d{2})/);
-  if(m){cron=m[2]+' '+m[1]+' * * *';}
-  var m2=text.match(/每(\d+)小时/);
-  if(m2){cron='0 */'+m2[1]+' * * *';}
-  var m3=text.match(/每(\d+)分钟/);
-  if(m3){cron='*/'+m3[1]+' * * * *';}
+  /* P2: 首个命中生效不再互相覆盖; 优先级 分钟 > 小时 > 定点; 容忍空格 */
+  var mMin=text.match(/每\s*(\d+)\s*分钟/);
+  var mHour=text.match(/每\s*(\d+)\s*小时/);
+  var mTime=text.match(/(\d{1,2}):(\d{2})/);
+  if(mMin){cron='*/'+mMin[1]+' * * * *';}
+  else if(mHour){cron='0 */'+mHour[1]+' * * *';}
+  else if(mTime){cron=mTime[2]+' '+mTime[1]+' * * *';}
   var name=text.length>20?text.slice(0,20)+'…':text;
   var res=B.createCron(name,cron,text);
-  if(res.ok){$('cronInput').value='';renderCronJobs();B.toast(t('cron.created'));}
+  if(res.ok){$('cronInput').value='';renderCronJobs();B.toast(t('cron.created'));if(res.notice)B.toast(res.notice);}
   else{B.toast(t('cron.createFail')+(res.error||''));}
   ev('创建 Cron: '+text);
 });
