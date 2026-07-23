@@ -612,6 +612,13 @@ public class AgentLoop implements Runnable {
             + "计划 = 修改源 .html + 重新 app.package, 不要问用户玩的是 html 还是 apk;"
             + "涉及手机硬件操作(手电/音量/亮度/震动/语音/通知/启动应用/查询状态)时,"
             + "直接计划 device.cmd 真做, 禁止写成 HTML 模拟。";
+            + "能力边界 (CONTRACT_CAPABILITY 压缩版, 对照执行):"
+            + "✅能做全做=单文件HTML工具/游戏→APK+localStorage持久化+文件读写+宿主设备控制"
+            + "(手电/音量/亮度/震动/TTS/通知/剪贴板/电量/截屏/拍照/定位/通讯录/短信/应用启动);"
+            + "⚠️只能demo=多用户/账号体系界面、财务系统(无后端, 必须在计划里明示「演示版」及边界);"
+            + "❌做不了=打包APK内相机扫一扫/录音/定位/联网抓取/真后端/支付接口/应用推送"
+            + " — 禁止闷头糊界面, 先说明做不到并给替代(如交付 server.js+部署说明 或 收款码图片方案);"
+            + "完成度标准: 承诺的功能全部真实现, 禁止占位符/桩代码/TODO/色块当图片/按钮无响应。"
 
     private static final String STEP_RULES =
             "你是 MOV agent 的大脑, 正在驱动一个 agentic 循环。规则:\n"
