@@ -18,8 +18,8 @@ var B=(function(){
     aiAsync:function(t,cb){if(!b){cb({ok:false,content:'浏览器演示模式'});return;}var id=nextCbId();_cbMap[id]=cb;b.aiChatAsync(t,id);},
     /* DESIGN_NEW_ROOM v2: 单聊房按绑定模型对话 */
     aiChatWithModel:function(t,modelId,cb){if(!b){cb({ok:false,content:'浏览器演示模式'});return;}var id=nextCbId();_cbMap[id]=cb;b.aiChatWithModel(t,modelId||'',id);},
-    /* DESIGN_AGENT_LOOP: agentic 循环 */
-    agentStart:function(goal,roomId,cb){if(!b){cb({ok:false,error:'浏览器演示模式'});return;}var id=nextCbId();_cbMap[id]=cb;b.agentStart(goal,roomId,id);},
+    /* DESIGN_AGENT_LOOP: agentic 循环 (modelIds = 房间 AI 成员, v2 评审团候选) */
+    agentStart:function(goal,roomId,modelIds,cb){if(!b){cb({ok:false,error:'浏览器演示模式'});return;}var id=nextCbId();_cbMap[id]=cb;b.agentStart(goal,roomId,JSON.stringify(modelIds||[]),id);},
     agentStop:function(loopId){try{if(b)b.agentStop(loopId);}catch(e){}},
     agentAnswer:function(loopId,text){try{if(b)b.agentAnswer(loopId,text);}catch(e){}},
     agentPlanRespond:function(loopId,approved,note){try{if(b)b.agentPlanRespond(loopId,approved,note||'');}catch(e){}},

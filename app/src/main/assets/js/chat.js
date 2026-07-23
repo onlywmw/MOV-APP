@@ -145,10 +145,12 @@ var _agentLoop=null;   /* {loopId, roomId, gen, awaiting: null|'plan'|'ask'} */
 var _agentExecuting=false;
 
 function runAgentTask(id,goal,gen){
+  var room=ROOMS.find(function(r){return r.id===id;});
+  var modelIds=room?roomAiMembers(room):[];
   setPhase(id,'讨论中');
   var typing=mkMsg({t:'agent',who:'mov',caret:true});
   showTyping(id,typing);
-  B.agentStart(goal,id,function(resp){
+  B.agentStart(goal,id,modelIds,function(resp){
     killTyping(typing);
     if(curRoomId!==id)return;
     if(!resp.ok){push(id,mkMsg({t:'agent',who:'mov',h:resp.error||'任务启动失败'}));return;}
@@ -178,9 +180,22 @@ window._agentLog=function(data){
       break;
     case 'note':
       push(id,mkMsg({t:'sys',h:data.text}));break;
+    case 'review':
+      /* v2: 交付评审投票轮次 */
+      push(id,mkMsg({t:'sys',h:'交付评审·第'+data.round+'轮: '+(data.pass||0)+' 通过 / '+(data.fail||0)+' 返工'}));
+      break;
     case 'deliver':
       renderDeliverCard(id,data.files||[]);
-      push(id,mkMsg({t:'sys',h:'实际 '+(data.promptTokens+data.completionTokens)+' tokens · '+fmtSec(data.elapsedSec)+' (预估 ~'+Math.round(data.estTokens/1000)+'k · '+fmtSec(data.estSeconds)+')'}));
+      var metric='实际 '+(data.promptTokens+data.completionTokens)+' tokens · '+fmtSec(data.elapsedSec)+' (预估 ~'+Math.round(data.estTokens/1000)+'k · '+fmtSec(data.estSeconds)+')';
+      if(data.reviewTokens>0)metric+=' · 含评审 '+data.reviewTokens;
+      if(data.reworkRounds>0)metric+=' · 返工 '+data.reworkRounds+' 轮';
+      push(id,mkMsg({t:'sys',h:metric}));
+      /* v2: 交付评审结论 */
+      if(data.comments&&data.comments.length){
+        data.comments.forEach(function(c){
+          push(id,mkMsg({t:'sys',h:'评审 '+(c.pass?'✓':'✗')+' '+(c.name||'')+': '+(c.reason||'')}));
+        });
+      }
       endAgentTask(id);break;
     case 'fail':
       push(id,mkMsg({t:'agent',who:'mov',h:'任务失败: '+(data.reason||'未知原因')}));
@@ -205,6 +220,18 @@ function renderAgentPlan(id,data){
     pb.appendChild(li);
   });
   pc.appendChild(pb);
+  /* v2: 评审团意见区 */
+  if(data.reviews&&data.reviews.length){
+    var rv=document.createElement('div');
+    rv.style.cssText='border-top:1px dashed var(--line);padding:var(--sp-2) var(--sp-3);';
+    data.reviews.forEach(function(r){
+      var line=document.createElement('div');
+      line.style.cssText='font-family:var(--font-sans);font-size:var(--fs-sm);color:var(--ink-3);line-height:1.6;margin-top:2px;';
+      line.textContent=(r.name||'评审')+(r.role?'('+r.role+')':'')+': '+(r.comment||'');
+      rv.appendChild(line);
+    });
+    pc.appendChild(rv);
+  }
   var pf=document.createElement('div');pf.className='pf';
   var bAp=document.createElement('button');bAp.className='btn btn-acc';bAp.textContent=t('plan.approve');
   var bRj=document.createElement('button');bRj.className='btn btn-ghost';bRj.textContent=t('plan.reject');

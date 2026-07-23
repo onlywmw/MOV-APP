@@ -123,11 +123,12 @@ public class AgentLoopTest {
 
     private static AgentLoop startAndApprove(String roomId, FakeBrain brain,
                                              FakeTools tools, FakeSink sink) throws Exception {
-        AgentLoop loop;
-        synchronized (AgentLoop.class) {
-            // 测试间互斥: 直接 new 等价物 — 走 startNew 需无活跃 loop
-            loop = AgentLoop.startNew(roomId, "测试目标", brain, tools, sink);
-        }
+        return startAndApprove(roomId, brain, tools, null, sink);
+    }
+
+    private static AgentLoop startAndApprove(String roomId, FakeBrain brain, FakeTools tools,
+                                             AgentLoop.Reviewer reviewer, FakeSink sink) throws Exception {
+        AgentLoop loop = AgentLoop.startNew(roomId, "测试目标", brain, tools, reviewer, sink);
         assertNotNull("应能启动 loop", loop);
         assertTrue("应到达计划闸", waitState(loop, AgentLoop.State.PLAN_GATE));
         loop.respondPlan(true, null);
@@ -247,12 +248,113 @@ public class AgentLoopTest {
         FakeBrain brain = new FakeBrain(
                 "{\"plan\":[{\"action\":\"file.write\",\"path\":\"a.html\",\"desc\":\"x\"}]}");
         FakeSink sink = new FakeSink();
-        AgentLoop first = AgentLoop.startNew("room6", "任务1", brain, new FakeTools(), sink);
+        AgentLoop first = AgentLoop.startNew("room6", "任务1", brain, new FakeTools(), null, sink);
         assertNotNull(first);
-        AgentLoop second = AgentLoop.startNew("room6", "任务2", brain, new FakeTools(), sink);
+        AgentLoop second = AgentLoop.startNew("room6", "任务2", brain, new FakeTools(), null, sink);
         assertNull("活跃 loop 存在时不应启动第二个", second);
         assertTrue(waitState(first, AgentLoop.State.PLAN_GATE));
         first.respondPlan(true, null);
         waitTerminal(first);
+    }
+
+    // ==================== v2: 评审团 ====================
+
+    private static class FakeReviewer implements AgentLoop.Reviewer {
+        private final JSONObject planResult;
+        private final ConcurrentLinkedQueue<JSONObject> votes = new ConcurrentLinkedQueue<>();
+
+        FakeReviewer(JSONObject planResult, JSONObject... voteSeq) {
+            this.planResult = planResult;
+            for (JSONObject v : voteSeq) votes.add(v);
+        }
+
+        @Override public JSONObject planReview(String goal, org.json.JSONArray plan) { return planResult; }
+        @Override public JSONObject deliveryVote(String goal, String digest, org.json.JSONArray files) {
+            JSONObject v = votes.poll();
+            return v != null ? v : voteJson(1, 0);
+        }
+    }
+
+    private static JSONObject voteJson(int pass, int fail) {
+        JSONObject v = new JSONObject();
+        try {
+            v.put("pass", pass).put("fail", fail).put("pt", 10).put("ct", 5);
+            org.json.JSONArray comments = new org.json.JSONArray();
+            if (fail > 0) comments.put(new JSONObject().put("name", "R1").put("pass", false).put("reason", "有缺陷"));
+            else comments.put(new JSONObject().put("name", "R1").put("pass", true).put("reason", "可以"));
+            v.put("comments", comments);
+        } catch (Exception ignored) {}
+        return v;
+    }
+
+    @Test
+    public void planReview_attachedToPlanCard() throws Exception {
+        JSONObject pr = new JSONObject();
+        pr.put("pt", 10).put("ct", 5);
+        pr.put("items", new org.json.JSONArray().put(
+                new JSONObject().put("name", "R1").put("role", "技术").put("comment", "注意性能")));
+        FakeBrain brain = new FakeBrain(
+                "{\"plan\":[{\"action\":\"file.write\",\"path\":\"a.html\",\"desc\":\"x\"}]}",
+                "{\"action\":\"finish\",\"summary\":\"完\"}");
+        FakeSink sink = new FakeSink();
+        AgentLoop loop = startAndApprove("room7", brain, new FakeTools(), new FakeReviewer(pr), sink);
+        waitTerminal(loop);
+        JSONObject plan = sink.firstOfType("plan");
+        assertNotNull(plan);
+        assertEquals(1, plan.optJSONArray("reviews").length());
+        assertEquals("注意性能", plan.optJSONArray("reviews").getJSONObject(0).optString("comment"));
+    }
+
+    @Test
+    public void deliveryVote_pass() throws Exception {
+        FakeBrain brain = new FakeBrain(
+                "{\"plan\":[{\"action\":\"file.write\",\"path\":\"a.html\",\"desc\":\"x\"}]}",
+                "{\"action\":\"finish\",\"summary\":\"完\"}");
+        FakeSink sink = new FakeSink();
+        AgentLoop loop = startAndApprove("room8", brain, new FakeTools(),
+                new FakeReviewer(null, voteJson(2, 0)), sink);
+        waitTerminal(loop);
+        assertEquals(AgentLoop.State.DONE, loop.getState());
+        JSONObject deliver = sink.firstOfType("deliver");
+        assertEquals(2, deliver.optInt("pass"));
+        assertEquals(0, deliver.optInt("reworkRounds"));
+        assertTrue("评审消耗单独计量", deliver.optInt("reviewTokens") > 0);
+    }
+
+    @Test
+    public void deliveryVote_reworkOnceThenPass() throws Exception {
+        FakeBrain brain = new FakeBrain(
+                "{\"plan\":[{\"action\":\"file.write\",\"path\":\"a.html\",\"desc\":\"x\"}]}",
+                "{\"action\":\"finish\",\"summary\":\"v1\"}",      // 首轮交付 → 评审返工
+                "{\"action\":\"file.write\",\"path\":\"a.html\",\"content\":\"fix\"}",
+                "{\"action\":\"finish\",\"summary\":\"v2\"}");   // 返工轮交付 → 通过
+        FakeTools tools = new FakeTools();
+        FakeSink sink = new FakeSink();
+        AgentLoop loop = startAndApprove("room9", brain, tools,
+                new FakeReviewer(null, voteJson(0, 2), voteJson(2, 0)), sink);
+        waitTerminal(loop);
+        assertEquals(AgentLoop.State.DONE, loop.getState());
+        JSONObject deliver = sink.firstOfType("deliver");
+        assertEquals("v2", deliver.optString("summary"));
+        assertEquals(1, deliver.optInt("reworkRounds"));
+        assertTrue("应有评审日志", sink.hasType("review"));
+        assertTrue("返工轮独立预算可写文件", tools.writes.size() >= 1);
+    }
+
+    @Test
+    public void deliveryVote_iterationCap() throws Exception {
+        FakeBrain brain = new FakeBrain(
+                "{\"plan\":[{\"action\":\"file.write\",\"path\":\"a.html\",\"desc\":\"x\"}]}",
+                "{\"action\":\"finish\",\"summary\":\"v1\"}",
+                "{\"action\":\"finish\",\"summary\":\"v2\"}",
+                "{\"action\":\"finish\",\"summary\":\"v3\"}");
+        FakeSink sink = new FakeSink();
+        // 三次投票全部返工 → 迭代上限后 DONE
+        AgentLoop loop = startAndApprove("room10", brain, new FakeTools(),
+                new FakeReviewer(null, voteJson(0, 2), voteJson(0, 2), voteJson(0, 2)), sink);
+        waitTerminal(loop);
+        assertEquals(AgentLoop.State.DONE, loop.getState());
+        JSONObject deliver = sink.firstOfType("deliver");
+        assertEquals(2, deliver.optInt("reworkRounds"));
     }
 }

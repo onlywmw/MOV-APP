@@ -42,14 +42,27 @@ public class AgentLoop implements Runnable {
         String deviceCmd(String text);
     }
 
-    /** 工作日志出口: 每条日志一个 JSONObject (type: phase/plan/step/ask/note/deliver/fail/stopped) */
+    /** 工作日志出口: 每条日志一个 JSONObject (type: phase/plan/step/ask/note/review/deliver/fail/stopped) */
     public interface LogSink {
         void onLog(JSONObject log);
+    }
+
+    /**
+     * 评审团 (v2, 可空 → 跳过两个评审点)。
+     * 返回 JSONObject 约定: 含 pt/ct (本次评审 token 消耗);
+     * planReview 含 items: [{name,role,comment}];
+     * deliveryVote 含 pass/fail/comments: [{name,pass,reason}]。
+     */
+    public interface Reviewer {
+        JSONObject planReview(String goal, JSONArray plan);
+        JSONObject deliveryVote(String goal, String logDigest, JSONArray files);
     }
 
     // ==================== 常量 (熔断与预估) ====================
 
     public static final int MAX_STEPS = 12;
+    public static final int REWORK_STEPS = 6;
+    public static final int MAX_REWORK_ROUNDS = 2;
     public static final int MAX_PARSE_FAILS = 2;
     public static final long MAX_EXEC_MS = 10 * 60_000;
     public static final long ASK_TIMEOUT_MS = 10 * 60_000;
@@ -70,11 +83,12 @@ public class AgentLoop implements Runnable {
 
     public static synchronized AgentLoop current() { return current; }
 
-    /** 有活跃 loop 返回 null (调用方负责排队/提示) */
+    /** 有活跃 loop 返回 null (调用方负责排队/提示); reviewer 可空 (跳过评审点) */
     public static synchronized AgentLoop startNew(String roomId, String goal,
-                                                  Brain brain, Tools tools, LogSink sink) {
+                                                  Brain brain, Tools tools,
+                                                  Reviewer reviewer, LogSink sink) {
         if (current != null && current.isActive()) return null;
-        AgentLoop l = new AgentLoop(roomId, goal, brain, tools, sink);
+        AgentLoop l = new AgentLoop(roomId, goal, brain, tools, reviewer, sink);
         current = l;
         new Thread(l, "agent-loop").start();
         return l;
@@ -87,6 +101,7 @@ public class AgentLoop implements Runnable {
     private final String goal;
     private final Brain brain;
     private final Tools tools;
+    private final Reviewer reviewer; // 可空 → 跳过评审点
     private final LogSink sink;
 
     private volatile State state = State.PLANNING;
@@ -100,17 +115,22 @@ public class AgentLoop implements Runnable {
     private final StringBuilder transcript = new StringBuilder();
     private final JSONArray producedFiles = new JSONArray();
     private int totalPrompt = 0, totalCompletion = 0;
+    private int reviewPt = 0, reviewCt = 0;   // v2: 评审消耗单独累计
     private int estTokens = 0, estSeconds = 0;
     private long execStartMs = 0, parkedMs = 0;
+    private int stepCounter = 0;
+    private String finishSummary = null;
 
     public enum State { PLANNING, PLAN_GATE, EXECUTING, DONE, FAILED, STOPPED }
 
-    private AgentLoop(String roomId, String goal, Brain brain, Tools tools, LogSink sink) {
+    private AgentLoop(String roomId, String goal, Brain brain, Tools tools,
+                      Reviewer reviewer, LogSink sink) {
         this.loopId = "loop" + System.currentTimeMillis();
         this.roomId = roomId;
         this.goal = goal;
         this.brain = brain;
         this.tools = tools;
+        this.reviewer = reviewer;
         this.sink = sink;
     }
 
@@ -164,10 +184,14 @@ public class AgentLoop implements Runnable {
                 }
                 estTokens = plan.length() * EST_TOKENS_PER_STEP + EST_BASE_TOKENS;
                 estSeconds = plan.length() * EST_SEC_PER_STEP;
-                log(new JSONObject()
-                        .put("type", "plan").put("loopId", loopId)
-                        .put("steps", plan)
-                        .put("estTokens", estTokens).put("estSeconds", estSeconds));
+                // v2 PLAN_REVIEW: 评审团点评附进计划卡 (不占循环步数)
+                JSONArray planReviews = doPlanReview(plan);
+                JSONObject planLog = j("type", "plan", "loopId", loopId,
+                        "steps", plan, "estTokens", estTokens, "estSeconds", estSeconds);
+                if (planReviews != null) {
+                    try { planLog.put("reviews", planReviews); } catch (Exception ignored) {}
+                }
+                log(planLog);
                 state = State.PLAN_GATE;
                 phase("待确认");
                 if (!parkForPlan()) { stopped(); return; }
@@ -177,35 +201,79 @@ public class AgentLoop implements Runnable {
                 note("计划已驳回" + (planNote != null && !planNote.isEmpty() ? ": " + planNote : ""));
             }
 
-            // ---- EXECUTING ----
+            // ---- EXECUTING (含 v2 交付评审返工轮) ----
             state = State.EXECUTING;
             phase("执行中");
             execStartMs = System.currentTimeMillis();
-            int parseFails = 0;
-            for (int step = 1; step <= MAX_STEPS; step++) {
-                if (stopRequested) { stopped(); return; }
-                if (pureExecMs() > MAX_EXEC_MS) { fail("执行超时 (10 分钟)"); return; }
+            String summary = executeSteps(MAX_STEPS);
+            if (summary == null) return; // fail/stopped 已处理
 
-                AiClient.AiResponse resp = brain.chat(STEP_PROMPT, buildStepInput(step));
-                track(resp);
-                if (!resp.success) { fail("大脑调用失败: " + resp.content); return; }
-
-                ActionParser.Result r = ActionParser.parse(resp.content);
-                if (!r.ok) {
-                    parseFails++;
-                    if (parseFails >= MAX_PARSE_FAILS) { fail("连续 2 次动作解析失败"); return; }
-                    transcript.append("【格式错误】").append(r.err)
-                            .append(" — 请只输出一个 JSON 动作。\n");
-                    continue;
-                }
-                parseFails = 0;
-                if (!execAction(step, r.action)) return; // 内部已处理 finish/fail/stopped/revise
-                if (state != State.EXECUTING) return;    // DONE/FAILED/STOPPED
+            // ---- v2 DELIV_REVIEW ----
+            if (reviewer == null) { deliver(summary, null, 0); return; }
+            for (int round = 1; round <= MAX_REWORK_ROUNDS + 1; round++) {
+                JSONObject vote = reviewer.deliveryVote(goal, digest(), producedFiles);
+                trackReview(vote);
+                int pass = vote != null ? vote.optInt("pass") : 1;
+                int failn = vote != null ? vote.optInt("fail") : 0;
+                log(j("type", "review", "loopId", loopId, "stage", "deliver",
+                        "round", round, "pass", pass, "fail", failn,
+                        "comments", vote != null ? vote.optJSONArray("comments") : null));
+                if (failn <= pass) { deliver(summary, vote, round - 1); return; }
+                if (round > MAX_REWORK_ROUNDS) { deliver(summary, vote, round - 1); return; }
+                // 返工: 意见回灌, 独立 6 步预算
+                String feedback = voteComments(vote);
+                transcript.append("【交付评审返工·第").append(round).append("轮】").append(feedback).append("\n");
+                note("交付评审: 需返工 (" + pass + " 通过 / " + failn + " 返工), 第 " + round + " 轮修复");
+                state = State.EXECUTING;
+                phase("执行中");
+                summary = executeSteps(REWORK_STEPS);
+                if (summary == null) return;
             }
-            fail("步数达上限 (" + MAX_STEPS + "), 任务未完成");
         } catch (Exception e) {
             fail("循环异常: " + e.getMessage());
         }
+    }
+
+    /** v2 计划评审; reviewer 为空或评审异常返回 null (静默跳过) */
+    private JSONArray doPlanReview(JSONArray plan) {
+        if (reviewer == null) return null;
+        try {
+            JSONObject r = reviewer.planReview(goal, plan);
+            trackReview(r);
+            return r != null ? r.optJSONArray("items") : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** 执行循环主体: 跑预算内步数, 返回 finish 的 summary; fail/stop/耗尽返回 null */
+    private String executeSteps(int budget) {
+        finishSummary = null;
+        int parseFails = 0;
+        int left = budget;
+        while (left > 0) {
+            if (stopRequested) { stopped(); return null; }
+            if (pureExecMs() > MAX_EXEC_MS) { fail("执行超时 (10 分钟)"); return null; }
+
+            stepCounter++;
+            AiClient.AiResponse resp = brain.chat(STEP_PROMPT, buildStepInput(stepCounter));
+            track(resp);
+            if (!resp.success) { fail("大脑调用失败: " + resp.content); return null; }
+
+            ActionParser.Result r = ActionParser.parse(resp.content);
+            if (!r.ok) {
+                parseFails++;
+                if (parseFails >= MAX_PARSE_FAILS) { fail("连续 2 次动作解析失败"); return null; }
+                transcript.append("【格式错误】").append(r.err)
+                        .append(" — 请只输出一个 JSON 动作。\n");
+                continue;
+            }
+            parseFails = 0;
+            left--; // 预算只消耗在合法动作上
+            if (!execAction(stepCounter, r.action)) return finishSummary; // finish→summary; fail/stop→null
+        }
+        fail("步数达上限 (" + budget + "), 任务未完成");
+        return null;
     }
 
     /** 执行一个动作; 返回 false 表示循环应结束 (finish/fail/stop/revise 重进计划闸由外层状态体现) */
@@ -305,7 +373,7 @@ public class AgentLoop implements Runnable {
                 return true;
             }
             case "finish": {
-                deliver(a.optString("summary"));
+                finishSummary = a.optString("summary");
                 return false;
             }
             default:
@@ -411,14 +479,52 @@ public class AgentLoop implements Runnable {
                 "elapsedSec", pureExecMs() / 1000));
     }
 
-    private void deliver(String summary) {
+    private void deliver(String summary, JSONObject vote, int reworkRounds) {
         state = State.DONE;
         phase("已交付");
-        log(j("type", "deliver", "loopId", loopId,
+        JSONObject d = j("type", "deliver", "loopId", loopId,
                 "summary", summary, "files", producedFiles,
                 "promptTokens", totalPrompt, "completionTokens", totalCompletion,
+                "reviewTokens", reviewPt + reviewCt,
+                "reworkRounds", reworkRounds,
                 "elapsedSec", pureExecMs() / 1000,
-                "estTokens", estTokens, "estSeconds", estSeconds));
+                "estTokens", estTokens, "estSeconds", estSeconds);
+        if (vote != null) {
+            try {
+                d.put("pass", vote.optInt("pass")).put("failVotes", vote.optInt("fail"))
+                 .put("comments", vote.optJSONArray("comments"));
+            } catch (Exception ignored) {}
+        }
+        log(d);
+    }
+
+    /** v2: 评审 token 单独累计 */
+    private void trackReview(JSONObject reviewResult) {
+        if (reviewResult != null) {
+            reviewPt += Math.max(0, reviewResult.optInt("pt"));
+            reviewCt += Math.max(0, reviewResult.optInt("ct"));
+        }
+    }
+
+    /** 交付评审用的日志摘要 (尾部 1500 字符 + 文件清单) */
+    private String digest() {
+        String t = transcript.toString();
+        if (t.length() > 1500) t = "…\n" + t.substring(t.length() - 1500);
+        return "目标: " + goal + "\n产出文件: " + producedFiles.toString() + "\n工作日志(尾部):\n" + t;
+    }
+
+    private String voteComments(JSONObject vote) {
+        if (vote == null) return "";
+        JSONArray comments = vote.optJSONArray("comments");
+        if (comments == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < comments.length(); i++) {
+            JSONObject c = comments.optJSONObject(i);
+            if (c != null && !c.optBoolean("pass", true)) {
+                sb.append(c.optString("name")).append(": ").append(c.optString("reason")).append("; ");
+            }
+        }
+        return sb.toString();
     }
 
     private void fail(String reason) {

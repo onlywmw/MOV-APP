@@ -142,10 +142,10 @@ public class BridgeAi extends BaseBridge {
     // ==================== AgentLoop (DESIGN_AGENT_LOOP v1) ====================
 
     /** 排队中的任务 (全局单 loop, 第二个任务内部排队) */
-    private String queuedGoal, queuedRoomId, queuedCbId;
+    private String queuedGoal, queuedRoomId, queuedModelIds, queuedCbId;
 
-    /** 启动 agentic 循环; 有活跃 loop 时排队并提示 */
-    public void agentStart(String goal, String roomId, String callbackId) {
+    /** 启动 agentic 循环; 有活跃 loop 时排队并提示。modelIdsJson: 房间 AI 成员 (评审团候选) */
+    public void agentStart(String goal, String roomId, String modelIdsJson, String callbackId) {
         if (goal == null || goal.trim().isEmpty()) {
             evalJs("window._hermesCb('" + callbackId + "',{\"ok\":false,\"error\":\"目标为空\"})");
             return;
@@ -214,15 +214,37 @@ public class BridgeAi extends BaseBridge {
                 evalJs("window._agentLog(" + log.toString() + ")");
             } catch (Exception ignored) {}
         };
-        AgentLoop loop = AgentLoop.startNew(roomId, goal, brain, tools, wrapSinkWithQueue(sink));
+        AgentLoop loop = AgentLoop.startNew(roomId, goal, brain, tools,
+                buildReviewer(modelIdsJson), wrapSinkWithQueue(sink));
         if (loop == null) {
-            queuedGoal = goal; queuedRoomId = roomId; queuedCbId = callbackId;
+            queuedGoal = goal; queuedRoomId = roomId;
+            queuedModelIds = modelIdsJson; queuedCbId = callbackId;
             evalJs("window._hermesCb('" + callbackId
                     + "',{\"ok\":true,\"queued\":true,\"note\":\"上一个任务还在执行, 已排队\"})");
             return;
         }
         evalJs("window._hermesCb('" + callbackId
                 + "',{\"ok\":true,\"loopId\":\"" + loop.getLoopId() + "\"})");
+    }
+
+    /** v2: 由房间成员构建评审团 (排除大脑=默认模型; 空 → null 跳过评审点) */
+    private AgentLoop.Reviewer buildReviewer(String modelIdsJson) {
+        try {
+            com.hermes.android.model.ModelConfig def = modelRegistry.getDefault();
+            String defId = def != null ? def.id : null;
+            java.util.List<com.hermes.android.model.ModelConfig> reviewers = new java.util.ArrayList<>();
+            JSONArray arr = new JSONArray(modelIdsJson != null ? modelIdsJson : "[]");
+            for (int i = 0; i < arr.length(); i++) {
+                com.hermes.android.model.ModelConfig mc = modelRegistry.get(arr.getString(i));
+                if (mc != null && mc.enabled && mc.isConfigured()
+                        && (defId == null || !defId.equals(mc.id))) {
+                    reviewers.add(mc);
+                }
+            }
+            return reviewers.isEmpty() ? null : new com.hermes.android.agent.AgentReview(reviewers);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** 在日志出口外包一层: 终态时自动启动排队任务 */
@@ -238,11 +260,10 @@ public class BridgeAi extends BaseBridge {
 
     private synchronized void maybeStartQueued() {
         if (queuedGoal == null) return;
-        String g = queuedGoal, r = queuedRoomId, cb = queuedCbId;
-        queuedGoal = null; queuedRoomId = null; queuedCbId = null;
-        // 递归启动 (若仍繁忙会重新排队, 但正常路径下当前 loop 已终态)
+        String g = queuedGoal, r = queuedRoomId, m = queuedModelIds, cb = queuedCbId;
+        queuedGoal = null; queuedRoomId = null; queuedModelIds = null; queuedCbId = null;
         evalJs("window._agentLog({\"type\":\"note\",\"text\":\"开始执行排队任务\"})");
-        agentStart(g, r, cb);
+        agentStart(g, r, m, cb);
     }
 
     public void agentStop(String loopId) {
