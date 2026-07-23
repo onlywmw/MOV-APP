@@ -11,13 +11,8 @@
 <div class="phone" id="phone">
   <div class="stage">
 
-    <!-- 会话 tab · 房间列表 -->
+    <!-- 会话 tab · 房间列表 (V5: 顶栏已移除) -->
     <div class="view act" id="view-rooms">
-      <div class="bighead">
-        <div style="display:flex;align-items:flex-start;gap:10px">
-          <div style="min-width:0;flex:1"><h3 data-i18n="rooms.title">房间</h3><div class="bh-sub" id="roomsSub">—</div></div>
-        </div>
-      </div>
       <div class="sbody">
         <div class="room-list" id="roomList"></div>
       </div>
@@ -89,9 +84,8 @@
 
 
 
-    <!-- 运行 tab (v3: 个人信息 + 精简 + 合并 Cron) -->
+    <!-- 运行 tab (V5: 顶栏与手动刷新已移除, 切 tab/回前台自动刷新) -->
     <div class="view" id="view-run">
-      <div class="abar"><div><h4 data-i18n="rt.title">运行</h4><div class="sub" id="runSub" data-i18n="rt.sub">原生能力引擎</div></div><span class="grow"></span><span class="ico-btn" id="btnRunRefresh">⟳</span></div>
       <!-- 个人信息 + Token 仪表盘 (V5 指挥台形态) -->
       <div class="personal-row" id="personalRow">
         <span class="pr-avatar" id="prAvatar">●</span>

@@ -57,9 +57,6 @@ function renderRooms(){
     h+='</div>';
   }
   $('roomList').innerHTML=h;
-  /* 大标题副标题: N 个项目 · M 个团队在讨论 */
-  var councils=active.filter(function(r){return r.mode==='council';}).length;
-  if($('roomsSub'))$('roomsSub').innerHTML='<b>'+active.length+'</b> '+t('rooms.projects')+' · <b>'+councils+'</b> '+t('rooms.councils');
   document.querySelectorAll('#roomList .room').forEach(function(el){
     el.addEventListener('click',function(){
       if(lpSuppressClick())return;

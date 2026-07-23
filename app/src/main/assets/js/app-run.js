@@ -3,8 +3,7 @@
    (从 app.js 拆出, DESIGN_POLISH #2)
    ============================================================ */
 
-/* 运行页刷新按钮 */
-$('btnRunRefresh').addEventListener('click',refreshRuntime);
+/* 运行页刷新: 切 tab/回前台自动触发 (V5 已移除手动刷新按钮) */
 
 /* Cron 创建 */
 $('btnCronCreate').addEventListener('click',function(){

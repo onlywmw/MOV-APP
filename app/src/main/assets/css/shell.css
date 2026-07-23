@@ -35,12 +35,6 @@ button,input,textarea{font-family:inherit;}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes tabIn{from{transform:scaleX(.3);opacity:0}to{transform:scaleX(1);opacity:1}}
 
-/* ---------- 大标题 (房间列表头) ---------- */
-.bighead{padding:var(--sp-6) var(--sp-5) var(--sp-2);}
-.bighead h3{font-family:var(--font-display);font-size:30px;font-weight:400;letter-spacing:.14em;color:var(--ink);}
-.bh-sub{font-family:var(--font-mono);font-size:var(--fs-xs);font-weight:500;letter-spacing:.1em;color:var(--ink-3);margin-top:var(--sp-1);}
-.bh-sub b{color:var(--seal);font-weight:700;}
-
 /* ---------- 房间列表 ---------- */
 .glabel{font-family:var(--font-mono);font-size:9px;font-weight:500;letter-spacing:.34em;color:var(--ink-4);padding:var(--sp-5) var(--sp-5) var(--sp-1);text-transform:uppercase;}
 .glist{margin:0;}

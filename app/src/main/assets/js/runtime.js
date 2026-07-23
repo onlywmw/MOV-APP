@@ -58,7 +58,6 @@ function refreshProcess(){
   }
   if(s.lastCmdMs!=null)$('rtLastCmd').textContent=s.lastCmdMs;
   if(s.lastCmdName!=null)$('rtLastCmdName').textContent=s.lastCmdName||'--';
-  $('runSub').textContent=t('rt.sub');
   /* 渲染个人信息 */
   renderPersonalRow();
 }
