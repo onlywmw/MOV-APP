@@ -183,10 +183,11 @@ function refreshModel(){
     var sel=m.isDefault?' sel':'';
     mh+='<div class="model-row'+sel+'" data-model="'+esc(m.id)+'">'
       +'<i class="av" style="background:'+esc(m.color||_pvColor(m.provider))+'">'+esc((m.name||'?').charAt(0))+'</i>'
-      +'<div><div class="pv">'+esc(m.role||t('model.roleGeneral'))+(m.isDefault?' · '+t('model.default'):'')+'</div>'
+      +'<div><div class="pv">'+(m.isDefault?esc(t('model.brainTag')):esc(m.role||t('model.roleGeneral')))
+      +'</div>'
       +'<div class="md">'+esc(m.name)+'</div>'
       +'<div class="ms">'+modelStatusDot(m)+'<span>'+esc(modelStatusText(m))+'</span></div></div>'
-      +(m.isDefault?'<span class="badge ok"><span class="dot"></span>'+t('model.default')+'</span>':'<span class="radio"></span>')
+      +(m.isDefault?'<span class="badge ok"><span class="dot"></span>'+t('model.brain')+'</span>':'<span class="radio"></span>')
       +'</div>';
   });
   if(models.length===0){
@@ -204,15 +205,9 @@ function refreshModel(){
       }else if(key==='__add'){
         openModelSheet(null); /* TC-M09: 运行页快捷添加, 不再跳原生页 */
       }else{
-        /* 点击非默认模型 → 设为默认 */
+        /* 点击模型行 → 管理 sheet (不再一点就换默认; 大脑切换必须是刻意动作) */
         var m=models.find(function(x){return x.id===key;});
-        if(m&&!m.isDefault){
-          var res=B.setDefaultModel(key);
-          if(res.ok){B.toast(t('model.setDefault')+' '+m.name);refreshModel();}
-          else{B.toast(res.error||t('model.setFail'));}
-        }else if(m){
-          B.openSettings();
-        }
+        if(m)openModelOps(m);
       }
     });
     /* TC-M10: 模型行长按 → 管理菜单 (空 text = 直达 sheet, 不弹确认条) */
@@ -337,14 +332,18 @@ function collectModelPayload(){
   return o;
 }
 
-/* ---------- MODEL OPS (TC-M10: 长按管理) ---------- */
+/* ---------- MODEL OPS (TC-M10: 模型管理 sheet · 点击/长按统一入口) ---------- */
 var _opsModel=null;
 function openModelOps(m){
   _opsModel=m;
-  $('modelOpsName').textContent=m.name+' · '+_pvName(m.provider);
+  $('modelOpsName').textContent=m.name+' · '+_pvName(m.provider)+' · '+(m.model||'');
+  /* 角色身份: 大脑(agent 驱动) / 评审候选 */
+  $('modelOpsRole').textContent=m.isDefault?t('model.brainDesc'):t('model.reviewerDesc');
+  $('modelOpsRole').style.color=m.isDefault?'var(--seal-deep)':'var(--ink-3)';
   $('modelOpsMenu').style.display='';
   $('modelOpsConfirm').style.display='none';
   $('mopsDefault').style.display=m.isDefault?'none':'';
+  $('mopsTest').textContent=t('model.testConn');
   openSheetExclusive('modelOpsMask','modelOpsSheet');
 }
 
@@ -387,9 +386,21 @@ $('btnModelSave').addEventListener('click',function(){
 $('mopsDefault').addEventListener('click',function(){
   if(!_opsModel)return;
   var res=B.setDefaultModel(_opsModel.id);
-  if(res.ok){B.toast(t('model.setDefault')+' '+_opsModel.name);}
+  if(res.ok){B.toast(t('model.brainSet')+' '+_opsModel.name);}
   else{B.toast(res.error||t('model.setFail'));}
   closeAllSheets();refreshModel();
+});
+/* 测连接: 用存储的真实 key 走 aiChatWithModel, 行内回显延迟 */
+$('mopsTest').addEventListener('click',function(){
+  if(!_opsModel)return;
+  var row=this;
+  row.textContent=t('model.testing');
+  var t0=Date.now();
+  B.aiChatWithModel('只回复两个字: 收到',_opsModel.id,function(res){
+    var ms=((Date.now()-t0)/1000).toFixed(1);
+    row.textContent=(res&&res.ok?(t('model.connOk')+' · '+ms+'s'):(t('model.connFail')+' · '+String(res&&res.content||'').slice(0,40)));
+    setTimeout(function(){row.textContent=t('model.testConn');},4000);
+  });
 });
 $('mopsEdit').addEventListener('click',function(){
   if(!_opsModel)return;
