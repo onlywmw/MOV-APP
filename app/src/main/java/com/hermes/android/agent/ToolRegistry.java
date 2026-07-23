@@ -152,6 +152,7 @@ public class ToolRegistry {
             if (t.name.startsWith("file.")) {
                 sb.append(",\"path\":\"f\"");
                 if ("file.write".equals(t.name)) sb.append(",\"content\":\"完整内容\"");
+                if ("file.read".equals(t.name)) sb.append(",\"offset\":0,\"length\":32768");
             } else if ("app.package".equals(t.name)) {
                 sb.append(",\"path\":\"game.html\",\"appName\":\"可选\"");
             }
@@ -173,11 +174,27 @@ public class ToolRegistry {
         ToolRegistry r = new ToolRegistry(policy);
         r.register(new Tool("file.list", "列房间文件",
                 a -> new Result(true, tools.fileList(roomId))));
-        r.register(new Tool("file.read", "读房间文件 (结果截断2k)", a -> {
+        r.register(new Tool("file.read", "读房间文件 (分页: offset=起始字符默认0, length=本次长度默认32k, 单次上限32k)", a -> {
             String res = tools.fileRead(roomId, a.optString("path"));
             if (res.startsWith("ERROR:")) return new Result(false, res);
-            if (res.length() > 2000) res = res.substring(0, 2000) + "\n…(截断)";
-            return new Result(true, res);
+            /* 底层 StorageManager 100k 截断标记: 分页天花板 */
+            boolean baseCapped = res.endsWith("\n…(截断)");
+            if (baseCapped) res = res.substring(0, res.length() - "\n…(截断)".length());
+            int total = res.length();
+            int offset = Math.max(0, a.optInt("offset", 0));
+            int length = a.optInt("length", 32768);
+            if (length <= 0 || length > 32768) length = 32768;
+            if (offset >= total) {
+                return new Result(false, "offset 越界: 文件共 " + total + " 字符, 全部内容已在你的工作日志里,"
+                        + "禁止再读, 直接用已读内容完成修改" + (baseCapped ? " (文件超底层 100k 上限)" : ""));
+            }
+            int end = Math.min(total, offset + length);
+            String out = res.substring(offset, end);
+            /* 显式页脚: 大脑需要"读完了"的确定信号, 否则会对 32k 上限产生幻觉得出"文件被截断" */
+            if (end < total) out += "\n…(已读 " + offset + "-" + end + "/" + total + " 字符, 用 offset=" + end + " 继续读)";
+            else if (baseCapped) out += "\n…(已达底层 100k 上限, 文件实际更大)";
+            else out += "\n—(文件读完, 共 " + total + " 字符)";
+            return new Result(true, out);
         }));
         r.register(new Tool("file.write", "写房间文件 (仅限已批准计划内路径)", a -> {
             String path = a.optString("path");
