@@ -85,6 +85,11 @@ public class BridgeModel extends BaseBridge {
         return "{\"ok\":" + registry.isEncrypted() + "}";
     }
 
+    /** V5: Token 仪表盘数据 (今日/本月/月配额) */
+    public String getTokenStats() {
+        return com.hermes.android.TokenMeter.statsJson();
+    }
+
     public String testModel(String json) {
         try {
             ModelConfig mc = ModelConfig.fromJson(new JSONObject(json));

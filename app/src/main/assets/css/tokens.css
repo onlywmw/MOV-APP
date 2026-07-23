@@ -1,78 +1,81 @@
 /* ============================================================
-   MOV DESIGN TOKENS V4.0 · Precision Grid
-   深空蓝底 · 纯平 · 严格 4px 网格 · 金色三职责
-   参考: Linear 精确感 + Raycast 数据密度 + Claude 留白
+   MOV TOKENS V5.0 · 素白 REFINED (默认) + 墨黑 (可选)
+   设计来源: 指挥台 Demo · 蓝 #05A5FA × 柠 #D3FFAF
+   兼容: V4 旧 token 名全部映射到新色板 (JS 内联样式不改动)
    ============================================================ */
-:root {
-  /* INK · 四级文字色阶 (Slate) */
-  --ink-1:#f1f5f9; --ink-2:#cbd5e1; --ink-3:#94a3b8; --ink-4:#64748b;
+:root{
+  /* ---------- 素白纸面 ---------- */
+  --paper:#FAFBF7; --fill:#F1F5EA; --fill-2:#E8EFE0;
+  --ink:#191D14; --ink-2:#484E3F; --ink-3:#88907B; --ink-4:#B4BCA5;
+  --hair:#E7ECE0;
+  --seal:#05A5FA; --seal-deep:#0379C4; --seal-soft:rgba(5,165,250,.08);
+  --lime:#D3FFAF; --lime-deep:#C2F493;
+  --ok:#679F2D; --ok-soft:rgba(103,159,45,.1);
+  --err:#C2402B;
 
-  /* SURFACE · 层级靠边框 */
-  --line:#334155; --line-soft:#1e293b;
-  --bg:#0f172a; --panel:#1e293b; --panel-2:#162036;
-  --code-bg:#0b1120; --code-ink:#e2e8f0;
+  /* ---------- 字体 ---------- */
+  --font-display:'ZCOOL XiaoWei','Noto Serif SC','Songti SC',serif;
+  --font-serif:'Noto Serif SC','Songti SC','SimSun',serif;
+  --font-sans:'Noto Sans SC',-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  --font-mono:'JetBrains Mono','Cascadia Mono','SF Mono',Consolas,monospace;
 
-  /* ACCENT · 信使金 · 选中 / 主操作 / 品牌 */
-  --acc:#d97706; --acc-strong:#fbbf24; --acc-live:#f59e0b;
-  --acc-tint:rgba(245,158,11,.16); --acc-tint-2:rgba(245,158,11,.07);
-  --acc-line:rgba(245,158,11,.35);
+  /* ---------- 旧名映射 (V4 → V5) ---------- */
+  --bg:var(--paper);
+  --panel:var(--paper);
+  --panel-2:var(--fill);
+  --ink-1:var(--ink);
+  --line:var(--hair);
+  --line-soft:var(--hair);
+  --acc-live:var(--seal);
+  --acc-strong:var(--seal-deep);
+  --acc-line:rgba(5,165,250,.35);
+  --acc-tint:var(--seal-soft);
+  --acc-tint-2:var(--seal-soft);
+  --ok-dot:var(--ok);
+  --err-dot:var(--err);
+  --code-bg:var(--fill);
+  --code-ink:var(--ink-2);
 
-  /* STATUS · 三色分工 */
-  --ok:#34d399; --ok-dot:#10b981;
-  --warn:#fbbf24; --warn-dot:#f59e0b;
-  --err:#f87171; --err-dot:#ef4444;
-
-  /* FONT */
-  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono','Cascadia Mono',Consolas,monospace;
-  --font-sans:-apple-system,'SF Pro Text','Segoe UI',Roboto,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
-
-  /* ── TYPE SCALE · 整数阶梯，禁止小数 ── */
-  --fs-xs:10px;    /* 辅助标签、时间戳 */
-  --fs-sm:11px;    /* 次要信息、badge */
-  --fs-base:13px;  /* 正文、输入框 */
-  --fs-md:14px;    /* 卡片标题 */
-  --fs-lg:16px;    /* Sheet 标题、大标题 */
-  --fs-xl:20px;    /* 页面标题 */
-  --fs-2xl:26px;   /* 大标题头 */
-
-  /* ── SPACING · 严格 4px 网格 ── */
-  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
-  --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-12:48px;
-
-  /* ── COMPONENT SIZES · 只有 sm/md/lg 三档 ── */
-  /* 可点击元素高度 */
-  --h-sm:32px;   /* badge, mini-tag, 小按钮 */
-  --h-md:40px;   /* 标准按钮, 输入行 */
-  --h-lg:48px;   /* 主操作, 列表项 */
-  /* 图标/头像方块 */
-  --av-sm:24px;  /* 消息头像, 小图标 */
-  --av-md:32px;  /* 卡片图标, 模型头像 */
-  --av-lg:40px;  /* 大头像, 文件网格图标 */
-  /* 列表项固定高度 */
-  --row-h:56px;  /* 房间/模型/技能等列表行 */
-
-  /* ── SHAPE · 三档圆角 ── */
-  --r-sm:8px;    /* 按钮、badge、小元素 */
-  --r-md:12px;   /* 卡片、输入框 */
-  --r-lg:16px;   /* Sheet、Dialog、大容器 */
-
-  /* ── SHADOW · 深色下只留浮层 ── */
-  --sh-1:none;
-  --sh-2:0 4px 16px rgba(0,0,0,.32);
-  --sh-3:0 16px 48px rgba(0,0,0,.5);
-
-  /* ── MOTION ── */
-  --t-fast:120ms ease-out;
-  --t-med:320ms cubic-bezier(.32,.72,0,1);
+  /* ---------- 尺寸 (沿用 V4 4px 网格) ---------- */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  --sp-8:32px; --sp-10:40px; --sp-12:48px;
+  --fs-xs:10px; --fs-sm:11.5px; --fs-base:13px; --fs-md:14.5px; --fs-lg:17px;
+  --fs-xl:20px; --fs-2xl:26px;
+  --h-sm:32px; --h-md:40px; --h-lg:48px;
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --av-sm:26px; --av-md:34px; --av-lg:44px;
+  --row-h:56px; --bnav-h:64px;
+  --sh-1:0 1px 3px rgba(25,29,20,.06);
+  --sh-3:0 18px 48px rgba(25,29,20,.14);
+  --t-fast:.16s ease; --t-med:.28s ease;
   --spring:cubic-bezier(.32,.72,0,1);
+}
 
-  /* ── SHELL ── */
-  --glass:#1e293b;
-  --glass-dark:#0b1120;
-  --blur:none;
-  --bnav-h:calc(56px + env(safe-area-inset-bottom,0px));
+/* ---------- 墨黑主题 (html.dark) ---------- */
+html.dark{
+  --paper:#14180F; --fill:#1B2113; --fill-2:#242B19;
+  --ink:#E4EEED; --ink-2:#C2CDB8; --ink-3:#8A9672; --ink-4:#5C6650;
+  --hair:#28301C;
+  --seal-soft:rgba(5,165,250,.15);
+  --ok-soft:rgba(103,159,45,.17);
+  --lime:#D3FFAF;
+  --sh-1:0 1px 3px rgba(0,0,0,.4);
+  --sh-3:0 18px 48px rgba(0,0,0,.5);
+}
 
-  /* ── AVATAR 色板 ── */
-  --av-1:#38bdf8; --av-2:#a3e635; --av-3:#fb7185;
-  --av-4:#34d399; --av-5:#f59e0b; --av-6:#22d3ee;
+/* ---------- 离线字体 ---------- */
+@font-face{
+  font-family:'ZCOOL XiaoWei';
+  src:url('../fonts/zcool-xiaowei.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:'JetBrains Mono';
+  src:url('../fonts/jbm-regular.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:'JetBrains Mono';
+  src:url('../fonts/jbm-bold.woff2') format('woff2');
+  font-weight:700;font-style:normal;font-display:swap;
 }

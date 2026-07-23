@@ -7,12 +7,32 @@
 /* 步骤隔离: 任一区块抛错只降级该区块并上报 logcat, 不再拖垮整页 */
 function refreshRuntime(){
   var steps=[['process',refreshProcess],['channels',refreshChannels],['model',refreshModel],
-             ['perms',renderPermissions],['cron',renderCronJobs],['skills',renderSkillPage]];
+             ['perms',renderPermissions],['cron',renderCronJobs],['skills',renderSkillPage],
+             ['tokens',renderTokenStats]];
   for(var i=0;i<steps.length;i++){
     try{steps[i][1]();}
     catch(e){ev('运行页区块刷新失败 ['+steps[i][0]+']: '+(e&&e.message?e.message:e));}
   }
   ev('运行页数据已刷新');
+}
+
+/* ---------- Token 仪表盘 (V5) ---------- */
+function renderTokenStats(){
+  var s=B.tokenStats();
+  if($('tkToday'))$('tkToday').textContent=fmtTok(s.today);
+  if($('tkMonth'))$('tkMonth').textContent=fmtTok(s.month);
+  var pct=s.quota>0?Math.min(100,Math.round(s.month/s.quota*100)):0;
+  if($('tkBar'))$('tkBar').style.width=pct+'%';
+  if($('tkQuotaUsed'))$('tkQuotaUsed').textContent=fmtTok(s.month);
+  if($('tkQuotaPct'))$('tkQuotaPct').textContent=pct;
+  var models=B.listModels();
+  if($('prSub'))$('prSub').textContent='本地运行 · '+models.length+' 个模型';
+}
+function fmtTok(n){
+  n=n||0;
+  if(n>=1e6)return (n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return (n/1e3).toFixed(1)+'K';
+  return String(Math.round(n));
 }
 
 /* ---------- PROCESS (DESIGN_OPTIMIZE §1: 精简 + 个人信息) ---------- */

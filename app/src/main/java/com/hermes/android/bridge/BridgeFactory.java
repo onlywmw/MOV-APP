@@ -113,6 +113,7 @@ public class BridgeFactory {
         });
     }
     @JavascriptInterface public String getEncStatus() { return model.getEncStatus(); }
+    @JavascriptInterface public String getTokenStats() { return model.getTokenStats(); }
 
     // ==================== 基础 ====================
     @JavascriptInterface

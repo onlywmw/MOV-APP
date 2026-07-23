@@ -4,6 +4,8 @@
    'desk' 为系统保留 id, 不可删除/覆盖
    ============================================================ */
 var STORE_KEY='mov_rooms_v2';
+/* V5: 主题 (素白默认 / 墨黑), 持久化 mov_theme */
+try{if(localStorage.getItem('mov_theme')==='dark')document.documentElement.classList.add('dark');}catch(e){}
 /* P1.5: 旧 key 一次性迁移 hermes_rooms_v2 → mov_rooms_v2 (CONTRACT_ROOM 约束3) */
 try{
   var _oldStore=localStorage.getItem('hermes_rooms_v2');

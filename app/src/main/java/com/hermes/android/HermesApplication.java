@@ -13,6 +13,7 @@ public class HermesApplication extends Application {
         if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             android.webkit.WebView.setWebContentsDebuggingEnabled(true);
         }
+        TokenMeter.init(this);
         MigrationManager.run(this);
         ensureDefaultsAndCleanup();
     }

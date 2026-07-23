@@ -192,6 +192,12 @@ public class AiClient {
             }
             if (pt < 0) { pt = body.toString().length() / 4; estimated = true; }
             if (ct < 0) { ct = content.length() / 4; estimated = true; }
+            // V5: 全局计量 (运行页仪表盘); 失败/异常永不阻断
+            try {
+                String providerKey = modelConfig != null ? modelConfig.provider
+                        : (config != null ? config.getProvider() : "");
+                com.hermes.android.TokenMeter.record(pt, ct, providerKey);
+            } catch (Exception ignored) {}
             return new AiResponse(true, content, pt, ct, estimated);
         } catch (java.net.SocketTimeoutException e) {
             return new AiResponse(false, "AI 请求超时，请检查网络或 API 地址");

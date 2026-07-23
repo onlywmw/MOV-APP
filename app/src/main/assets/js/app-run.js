@@ -45,3 +45,16 @@ $('btnPersonalSettings').addEventListener('click',function(){
   B.openSettings();
   ev('从运行页打开设置');
 });
+
+/* V5: 素白 ↔ 墨黑 主题切换 (持久化 mov_theme) */
+(function initThemeBtn(){
+  var btn=$('btnTheme');
+  if(!btn)return;
+  btn.textContent=document.documentElement.classList.contains('dark')?'◑':'◐';
+  btn.addEventListener('click',function(){
+    var dark=document.documentElement.classList.toggle('dark');
+    try{localStorage.setItem('mov_theme',dark?'dark':'light');}catch(e){}
+    btn.textContent=dark?'◑':'◐';
+    ev('切换主题 → '+(dark?'墨黑':'素白'));
+  });
+})();

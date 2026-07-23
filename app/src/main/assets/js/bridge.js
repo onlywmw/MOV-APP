@@ -83,6 +83,8 @@ var B=(function(){
     deleteModel:function(id){try{return b?JSON.parse(b.deleteModel(id)):{ok:false};}catch(e){return {ok:false};}},
     testModel:function(json,cb){if(!b){cb({ok:false,error:'浏览器演示模式'});return;}var id=nextCbId();_cbMap[id]=cb;b.testModel(typeof json==='string'?json:JSON.stringify(json),id);},
     setDefaultModel:function(id){try{return b?JSON.parse(b.setDefaultModel(id)):{ok:false};}catch(e){return {ok:false};}},
+    /* V5: Token 仪表盘 */
+    tokenStats:function(){try{return b?JSON.parse(b.getTokenStats()):{today:0,month:0,quota:5000000};}catch(e){return {today:0,month:0,quota:5000000};}},
     /* 加密状态检查 */
     encStatus:function(){try{return b?JSON.parse(b.getEncStatus()):{ok:true};}catch(e){return {ok:true};}}
   };

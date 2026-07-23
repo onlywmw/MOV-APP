@@ -92,12 +92,26 @@
     <!-- 运行 tab (v3: 个人信息 + 精简 + 合并 Cron) -->
     <div class="view" id="view-run">
       <div class="abar"><div><h4 data-i18n="rt.title">运行</h4><div class="sub" id="runSub" data-i18n="rt.sub">原生能力引擎</div></div><span class="grow"></span><span class="ico-btn" id="btnRunRefresh">⟳</span></div>
-      <!-- 个人信息 (DESIGN_OPTIMIZE §1) -->
+      <!-- 个人信息 + Token 仪表盘 (V5 指挥台形态) -->
       <div class="personal-row" id="personalRow">
         <span class="pr-avatar" id="prAvatar">●</span>
-        <span class="pr-name" id="prName">本地用户</span>
-        <span class="grow"></span>
+        <div style="flex:1;min-width:0">
+          <span class="pr-name" id="prName">本地用户</span>
+          <span class="pr-sub" id="prSub">本地运行</span>
+        </div>
+        <span class="ico-btn" id="btnTheme" title="素白/墨黑">◐</span>
         <span class="ico-btn" id="btnPersonalSettings" title="设置">≡</span>
+      </div>
+      <div style="padding:0 var(--sp-5)">
+        <div class="pf-div"></div>
+        <div class="pf-tokens">
+          <div class="tk"><span class="tk-lab">今日 TOKEN</span><b class="tk-val" id="tkToday">0</b></div>
+          <div class="tk"><span class="tk-lab">本月 TOKEN</span><b class="tk-val" id="tkMonth">0</b></div>
+        </div>
+        <div class="tk-quota">
+          <div class="tk-bar"><i id="tkBar" style="width:0%"></i></div>
+          <span class="tk-qsub"><em id="tkQuotaUsed">0</em> / 5M 月配额 · <span id="tkQuotaPct">0</span>%</span>
+        </div>
       </div>
       <div class="sbody">
         <!-- 状态条: MOV 运行正常 · 已运行 Xh Xm -->
