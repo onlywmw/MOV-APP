@@ -108,53 +108,6 @@
         </div>
       </div>
       <div class="sbody">
-        <!-- 状态条: MOV 运行正常 · 已运行 Xh Xm -->
-        <div class="status-strip" id="statusStrip">
-          <span class="ss-dot" id="ssDot"></span>
-          <span id="ssText">MOV 运行正常</span>
-          <span class="ss-uptime" id="ssUptime">--</span>
-          <span class="ss-dev" id="ssDevToggle">▸</span>
-        </div>
-        <!-- 开发者指标 (默认折叠, DESIGN_OPTIMIZE §1: 点到设置→关于可见) -->
-        <div id="devMetrics" style="display:none">
-          <div class="proc-card">
-            <div class="proc-line">$ pid <b id="rtPid">--</b></div>
-            <div class="proc-meters">
-              <div class="m"><b id="rtMem">--<i> MB</i></b><span data-i18n="rt.mem">JVM 内存</span><div class="bar"><i id="rtMemBar" style="width:0%"></i></div></div>
-              <div class="m"><b id="rtCmds">--<i data-i18n="rt.times">次</i></b><span data-i18n="rt.cmds">指令执行</span><div class="bar"><i id="rtCmdBar" style="width:0%"></i></div></div>
-            </div>
-            <div class="proc-line" style="margin-top:4px"><span data-i18n="rt.lastCmd">最近指令</span> <b id="rtLastCmdName">--</b> · <span class="val" id="rtLastCmd">--</span> ms</div>
-          </div>
-        </div>
-        <!-- 三行入口: 点击进入详情 -->
-        <div class="triple-row">
-          <div class="t-row" id="rowChannels">
-            <span class="t-label" data-i18n="rt.channels">通道</span>
-            <span class="t-val" id="chanSummary">--</span>
-            <span class="t-arrow">›</span>
-          </div>
-          <div class="t-row" id="rowSkills">
-            <span class="t-label" data-i18n="skill.title">技能</span>
-            <span class="t-val" id="skillSummary">--</span>
-            <span class="t-arrow">›</span>
-          </div>
-          <div class="t-row" id="rowPerms">
-            <span class="t-label" data-i18n="rt.perms2">权限</span>
-            <span class="t-val" id="permSummary">--</span>
-            <span class="t-arrow">›</span>
-          </div>
-        </div>
-
-        <!-- 详情弹层 (通道/权限/技能共用) -->
-        <div class="preview-mask" id="runDetailMask" style="display:none"></div>
-        <div class="preview-overlay" id="runDetailOverlay" style="display:none">
-          <div class="preview-bar">
-            <span class="preview-name" id="runDetailTitle"></span>
-            <span class="sheet-close" id="runDetailClose">✕</span>
-          </div>
-          <div class="preview-body" id="runDetailBody"></div>
-        </div>
-
         <!-- MODEL -->
         <div class="sub-head" data-i18n="rt.model">模型</div>
         <div id="modelList"></div>

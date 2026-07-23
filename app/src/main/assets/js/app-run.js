@@ -24,20 +24,7 @@ $('btnCronCreate').addEventListener('click',function(){
   ev('创建 Cron: '+text);
 });
 
-/* 三行入口 → 详情弹层 */
-$('rowChannels').addEventListener('click',function(){openRunDetail('channels');});
-$('rowPerms').addEventListener('click',function(){openRunDetail('perms');});
-$('rowSkills').addEventListener('click',function(){openRunDetail('skills');});
-$('runDetailClose').addEventListener('click',closeRunDetail);
-$('runDetailMask').addEventListener('click',closeRunDetail);
-
-/* 开发者指标折叠 (DESIGN_OPTIMIZE §1) */
-$('ssDevToggle').addEventListener('click',function(){
-  var m=$('devMetrics');
-  var open=m.style.display!=='none';
-  m.style.display=open?'none':'';
-  this.textContent=open?'▸':'▾';
-});
+/* 三行入口与详情弹层已随 V5 移除 (通道/技能/权限不再展示) */
 
 /* 个人信息设置入口 */
 $('btnPersonalSettings').addEventListener('click',function(){

@@ -52,7 +52,7 @@ function bindSkillCards(container){
       text:t('skill.remove'),
       exec:function(){
         var res=B.deleteSkill(sid);
-        if(res.ok){B.toast(t('skill.removed'));renderSkillPage();openRunDetail('skills');}
+        if(res.ok){B.toast(t('skill.removed'));renderSkillPage();}
         ev('移除技能 '+sid);
       }
     });
