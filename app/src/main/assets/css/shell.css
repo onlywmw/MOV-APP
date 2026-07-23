@@ -192,7 +192,7 @@ html.dark .chat-foot{background:linear-gradient(to top,var(--paper) 78%,rgba(20,
 .input-row .send:active{transform:scale(.86);background:var(--seal);}
 
 /* ---------- 长按操作条 ---------- */
-.msg-actions{position:absolute;left:var(--sp-3);right:var(--sp-3);bottom:calc(var(--bnav-h) + var(--sp-3));background:var(--ink);color:var(--paper);border-radius:var(--r-lg);min-height:var(--h-lg);padding:var(--sp-3) var(--sp-4);font-size:var(--fs-base);font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--sh-3);z-index:40;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s var(--spring);}
+.msg-actions{position:absolute;left:var(--sp-3);right:var(--sp-3);bottom:calc(var(--bnav-h) + var(--sp-3));background:var(--ink);color:var(--paper);border-radius:var(--r-lg);min-height:var(--h-lg);padding:var(--sp-3) var(--sp-4);font-size:var(--fs-base);font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--sh-3);z-index:20;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s var(--spring);}
 .msg-actions.show{opacity:1;visibility:visible;transform:none;}
 .msg.longpress-hl .bubble{box-shadow:0 0 0 2px var(--seal);}
 .skill.longpress-hl,.room.longpress-hl{box-shadow:0 0 0 2px var(--seal);border-radius:var(--r-md);}
@@ -239,10 +239,7 @@ html.dark .chat-foot{background:linear-gradient(to top,var(--paper) 78%,rgba(20,
 .mpick-wrap{max-height:0;overflow:hidden;transition:max-height .35s var(--spring);}
 .mpick-wrap.open{max-height:500px;overflow-y:auto;}
 
-/* ---------- 居中弹窗 (遗留) ---------- */
-.dialog-mask{display:none;position:absolute;inset:0;background:rgba(25,29,20,.36);z-index:99;}
-.dialog-mask.open{display:flex;align-items:center;justify-content:center;}
-.dialog{background:var(--paper);border-radius:18px;padding:22px;width:calc(100% - 52px);max-width:360px;box-shadow:var(--sh-3);}
+/* ---------- 居中弹窗 (已废弃, CONTRACT_ZINDEX: 死代码移除) ---------- */
 
 /* ============================================================
    运行页
@@ -335,8 +332,8 @@ html.dark .personal-row .pr-avatar{box-shadow:0 6px 16px rgba(0,0,0,.5);}
 .switch.off::after{right:19px;}
 
 /* 详情弹层 */
-.preview-mask{position:absolute;inset:0;background:rgba(25,29,20,.36);z-index:39;}
-.preview-overlay{position:absolute;inset:var(--sp-4);background:var(--paper);border:none;border-radius:var(--r-lg);z-index:40;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-3);}
+.preview-mask{position:absolute;inset:0;background:rgba(25,29,20,.36);z-index:29;}
+.preview-overlay{position:absolute;inset:var(--sp-4);background:var(--paper);border:none;border-radius:var(--r-lg);z-index:30;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-3);}
 .preview-bar{display:flex;align-items:center;justify-content:space-between;height:var(--h-lg);padding:0 var(--sp-4);border-bottom:1px solid var(--hair);flex:none;}
 .preview-name{font-family:var(--font-mono);font-size:var(--fs-base);font-weight:600;color:var(--ink);}
 .preview-body{flex:1;overflow:auto;padding:var(--sp-4);font-family:var(--font-mono);font-size:var(--fs-sm);line-height:1.75;white-space:pre-wrap;word-break:break-word;color:var(--ink-2);}
@@ -457,10 +454,6 @@ html.dark .bnav{background:linear-gradient(to top,var(--paper) 70%,rgba(20,24,15
 
 /* ---------- 其他 ---------- */
 .err-chip{display:inline-flex;align-items:center;gap:var(--sp-2);background:rgba(194,64,43,.08);border:1px solid rgba(194,64,43,.35);color:var(--err);font-family:var(--font-mono);font-size:var(--fs-xs);height:var(--sp-6);padding:0 var(--sp-3);border-radius:var(--r-sm);}
-.retry-link{font-family:var(--font-mono);font-size:var(--fs-xs);font-weight:700;color:var(--err);background:rgba(194,64,43,.12);height:28px;padding:0 var(--sp-3);display:inline-flex;align-items:center;border-radius:var(--r-sm);cursor:pointer;margin-left:var(--sp-2);}
-.retry-link:active{background:rgba(194,64,43,.24);}
-#sheetMask{z-index:31;}
-#sheetNew{z-index:32;}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;}
